@@ -1,0 +1,2435 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>คลื่นเสียง — สื่อจำลองฟิสิกส์ ม.5</title>
+<style>
+  :root {
+    --bg: #0b1016;
+    --panel: #121922;
+    --panel-2: #1a2430;
+    --line: #2c3c4e;
+    --text: #e8eef5;
+    --muted: #93a6b8;
+    --accent: #3ee0c5;
+    --amber: #ffc14a;
+    --danger: #ff6b6b;
+    --ok: #7dffa1;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    overflow: hidden;
+    color: var(--text);
+    font-family: "Leelawadee UI", Tahoma, "Segoe UI", sans-serif;
+    background:
+      radial-gradient(1000px 420px at 12% -10%, rgba(62, 224, 197, 0.09), transparent 55%),
+      var(--bg);
+  }
+  button, select, input { font: inherit; color: inherit; }
+  button, select {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 8px 10px;
+  }
+  button { cursor: pointer; }
+  button:hover, select:hover { border-color: var(--accent); }
+  button:disabled { opacity: 0.42; cursor: not-allowed; }
+  button.primary, button.on {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 18%, var(--panel-2));
+  }
+  button:focus-visible, select:focus-visible, input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  h1, h2, h3, p { margin: 0; }
+  .app {
+    height: 100vh;
+    display: grid;
+    grid-template-columns: 330px minmax(0, 1fr) 400px;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px;
+  }
+  header { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 0 4px; }
+  .brand { display: flex; gap: 12px; align-items: center; }
+  h1 { font-size: 28px; letter-spacing: -0.02em; }
+  header p, .stage-bar p, .note, .caption, .ghead p, .mis p { color: var(--muted); line-height: 1.45; }
+  .badge {
+    border: 1px solid var(--line);
+    background: rgba(18, 25, 34, 0.9);
+    color: var(--amber);
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .panel, .stage {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    min-height: 0;
+  }
+  #controls, #side { display: flex; flex-direction: column; gap: 10px; padding: 12px; overflow: hidden; }
+  #controlScroll, #sideScroll { overflow: auto; min-height: 0; flex: 1; padding-right: 4px; }
+  .stage { display: flex; flex-direction: column; padding: 12px; gap: 8px; }
+  .stage-bar, .ghead { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+  .stage-bar { align-items: center; }
+  h2 { font-size: 22px; }
+  .run { display: flex; align-items: center; gap: 8px; color: var(--muted); white-space: nowrap; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #556575; display: inline-block; }
+  .dot.on { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  .view-wrap, .graph-wrap {
+    background: #0c1218;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .view-wrap { flex: 1; min-height: 0; }
+  .graph-wrap { height: 228px; }
+  canvas { width: 100%; height: 100%; display: block; }
+  #view { touch-action: none; }
+  .caption { font-size: 14px; }
+  .group { margin-bottom: 14px; }
+  .lbl { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; font-size: 14.5px; }
+  .lbl b, .formula, .work, td.num { font-variant-numeric: tabular-nums; }
+  .lbl b { color: var(--amber); }
+  .choice { display: flex; gap: 8px; align-items: flex-start; margin: 6px 0; cursor: pointer; }
+  .chips, .seg { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chips button, .seg button { padding: 6px 10px; }
+  .transport { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .card {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .card h3, .mis h3 { font-size: 15px; color: var(--accent); margin-bottom: 6px; }
+  .formula, .work {
+    background: #0d141c;
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin: 6px 0;
+    line-height: 1.5;
+    overflow-wrap: break-word;
+  }
+  .big { font-size: 22px; color: var(--amber); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 5px 4px; border-bottom: 1px solid var(--line); text-align: left; }
+  th { color: var(--muted); font-weight: 650; }
+  td.num, th.num { text-align: right; }
+  tr.sel { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+  tr.bad td { color: #7f91a3; }
+  .mis {
+    border: 1px solid color-mix(in srgb, var(--amber) 45%, var(--line));
+    background: rgba(255, 193, 74, 0.07);
+    border-radius: 14px;
+    padding: 12px;
+  }
+  .mis h3 { color: var(--amber); margin-top: 8px; }
+  .mis h3:first-child { margin-top: 0; }
+  .live { color: var(--text) !important; margin-top: 8px; }
+  .note { font-size: 13px; }
+  .hidden { display: none !important; }
+  #selftest { background: #6d1d1d; color: white; padding: 10px 14px; }
+  select { width: 100%; }
+  @media (max-width: 1100px) {
+    body { overflow: auto; }
+    .app { height: auto; grid-template-columns: 1fr; grid-template-rows: auto; }
+    #controls, #side { display: block; overflow: visible; }
+    #controlScroll, #sideScroll { overflow: visible; }
+    .view-wrap { height: 540px; flex: none; min-height: 540px; }
+    header { align-items: flex-start; flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+<div id="selftest" hidden></div>
+<div class="app">
+  <header>
+    <div class="brand">
+      <svg width="42" height="42" viewBox="0 0 42 42" aria-hidden="true">
+        <rect width="42" height="42" rx="12" fill="#13202b"/>
+        <path d="M7 21h5l3.2-8 4.2 16 3.2-8H35" fill="none" stroke="#3ee0c5" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <h1>คลื่นเสียง</h1>
+        <p>สื่อจำลองเชิงโต้ตอบ · ฟิสิกส์เพิ่มเติม ม.5 · ตามหลักสูตร สสวท.</p>
+      </div>
+    </div>
+    <div id="badge" class="badge">กำลังเตรียมแบบจำลอง</div>
+  </header>
+
+  <aside id="controls" class="panel">
+    <div id="controlScroll">
+      <div class="group">
+        <div class="lbl"><span>โหมดการทดลอง</span></div>
+        <select id="modeSel" aria-label="เลือกโหมดการทดลอง">
+          <option value="1">1. อัตราเร็วเสียงและคลื่นตามยาว</option>
+          <option value="2">2. ความเข้มเสียงและระดับความเข้มเสียง</option>
+          <option value="3">3. ปรากฏการณ์บีตส์</option>
+          <option value="4">4. คลื่นนิ่งและการสั่นก้องในท่อ</option>
+          <option value="5">5. ปรากฏการณ์ดอปเพลอร์และคลื่นกระแทก</option>
+        </select>
+      </div>
+
+      <div class="group" data-show="1 4 5">
+        <div class="lbl"><span>อุณหภูมิอากาศ T</span><b id="tOut"></b></div>
+        <input id="tSlider" type="range" min="-20" max="50" step="1" value="25" aria-label="อุณหภูมิอากาศ">
+      </div>
+
+      <div class="group" data-show="1 2 4 5">
+        <div class="lbl"><span>ความถี่แหล่งกำเนิด f</span><b id="fOut"></b></div>
+        <input id="fSlider" type="range" min="100" max="2000" step="1" value="440" aria-label="ความถี่แหล่งกำเนิด">
+      </div>
+
+      <div class="group" data-show="1">
+        <label class="choice"><input id="cmpToggle" type="checkbox"> เปรียบเทียบอีกความถี่หนึ่ง (อัตราเร็วเท่ากัน)</label>
+        <div id="cmpExtra" class="hidden">
+          <div class="lbl"><span>ความถี่เปรียบเทียบ</span><b id="cmpOut"></b></div>
+          <input id="cmpSlider" type="range" min="100" max="2000" step="1" value="220" aria-label="ความถี่เปรียบเทียบ">
+        </div>
+      </div>
+
+      <div class="group" data-show="2">
+        <div class="lbl"><span>กำลังของแหล่งกำเนิด P</span><b id="pOut"></b></div>
+        <input id="pSlider" type="range" min="0" max="1000" step="1" aria-label="กำลังของแหล่งกำเนิด">
+        <div class="chips">
+          <button type="button" data-p="0.01">0.01 W</button>
+          <button type="button" data-p="0.1">0.1 W</button>
+          <button type="button" data-p="1">1 W</button>
+          <button type="button" data-p="10">10 W</button>
+        </div>
+      </div>
+
+      <div class="group" data-show="2">
+        <div class="lbl"><span>ระยะจากแหล่งกำเนิด r</span><b id="rOut"></b></div>
+        <input id="rSlider" type="range" min="1" max="100" step="0.01" value="5" aria-label="ระยะจากแหล่งกำเนิด">
+        <div class="chips">
+          <button type="button" data-r="2">2 m</button>
+          <button type="button" data-r="5">5 m</button>
+          <button type="button" data-r="10">10 m</button>
+          <button type="button" data-r="20">20 m</button>
+          <button type="button" data-act="double-r">เพิ่มระยะ ×2</button>
+        </div>
+      </div>
+
+      <div class="group" data-show="3">
+        <div class="lbl"><span>ความถี่แหล่งที่ 1 · f₁</span><b id="f1Out"></b></div>
+        <input id="f1Slider" type="range" min="100" max="2000" step="1" value="440" aria-label="ความถี่แหล่งที่ 1">
+        <div class="lbl" style="margin-top:10px"><span>ความถี่แหล่งที่ 2 · f₂</span><b id="f2Out"></b></div>
+        <input id="f2Slider" type="range" min="100" max="2000" step="1" value="443" aria-label="ความถี่แหล่งที่ 2">
+        <div class="chips">
+          <button type="button" data-df="0">f₁ = f₂</button>
+          <button type="button" data-df="3">ต่างกัน 3 Hz</button>
+          <button type="button" data-df="10">ต่างกัน 10 Hz</button>
+          <button type="button" data-act="beat440">440 กับ 443</button>
+        </div>
+      </div>
+
+      <div class="group" data-show="4">
+        <div class="lbl"><span>ชนิดของท่อ</span></div>
+        <label class="choice"><input type="radio" name="pipe" value="open" checked> ท่อปลายเปิดสองข้าง</label>
+        <label class="choice"><input type="radio" name="pipe" value="closed"> ท่อปลายปิดข้างเดียว</label>
+      </div>
+
+      <div class="group" data-show="4">
+        <div class="lbl"><span>ความยาวท่อ L</span><b id="lOut"></b></div>
+        <input id="lSlider" type="range" min="0.1" max="2" step="0.01" value="0.5" aria-label="ความยาวท่อ">
+      </div>
+
+      <div class="group" data-show="4">
+        <div class="lbl"><span>ฮาร์มอนิกที่เลือก</span></div>
+        <div class="chips" id="nChips"></div>
+        <label class="choice"><input id="lockToggle" type="checkbox" checked> ล็อกความถี่ให้ตรงการสั่นพ้องของ n ที่เลือก</label>
+        <div class="seg" id="waveSeg">
+          <button type="button" id="btnDisp" class="on">ป้ายของการกระจัด</button>
+          <button type="button" id="btnPres">ป้ายของความดัน</button>
+        </div>
+      </div>
+
+      <div class="group" data-show="5">
+        <div class="lbl"><span>ความเร็วแหล่งกำเนิด vₛ (บวก = ไปทางขวา)</span><b id="vsOut"></b></div>
+        <input id="vsSlider" type="range" min="-1.5" max="1.5" step="0.01" value="0.6" aria-label="ความเร็วแหล่งกำเนิด">
+        <div class="lbl" style="margin-top:10px"><span>ความเร็วผู้ฟัง vₒ (บวก = ไปทางขวา)</span><b id="voOut"></b></div>
+        <input id="voSlider" type="range" min="-1.5" max="1.5" step="0.01" value="0" aria-label="ความเร็วผู้ฟัง">
+        <div class="chips">
+          <button type="button" data-vs="0.6" data-vo="0">แหล่งเข้าหา</button>
+          <button type="button" data-vs="-0.6" data-vo="0">แหล่งถอยออก</button>
+          <button type="button" data-vs="0" data-vo="-0.45">ผู้ฟังเข้าหา</button>
+          <button type="button" data-vs="1.25" data-vo="0">เร็วกว่าเสียง</button>
+          <button type="button" data-act="reset-pass">จัดตำแหน่งใหม่</button>
+        </div>
+      </div>
+
+      <div class="group" data-show="1 2 4 5">
+        <div class="lbl"><span>ความเร็วของภาพจำลอง</span><b id="timeOut"></b></div>
+        <input id="timeSlider" type="range" min="0.25" max="4" step="0.05" value="1" aria-label="ความเร็วของภาพจำลอง">
+        <p id="slowNote" class="note"></p>
+      </div>
+    </div>
+    <p class="note">เสียงจากลำโพงเป็นตัวอย่างความถี่เท่านั้น ความดังถูกจำกัดให้ปลอดภัย และไม่ได้ดังตามค่าระดับความเข้มเสียงที่คำนวณ ควรเริ่มจากระดับเสียงของเครื่องที่เบา</p>
+    <div class="transport">
+      <button type="button" id="playBtn">เล่น</button>
+      <button type="button" id="pauseBtn" class="primary">หยุด</button>
+      <button type="button" id="resetBtn">เริ่มใหม่</button>
+      <button type="button" id="soundBtn">เปิดเสียงลำโพง</button>
+    </div>
+  </aside>
+
+  <section class="stage">
+    <div class="stage-bar">
+      <div>
+        <h2 id="modeTitle"></h2>
+        <p id="objective"></p>
+      </div>
+      <div class="run"><span id="runDot" class="dot"></span><span id="runText">กำลังจำลอง</span></div>
+    </div>
+    <div class="view-wrap" id="viewWrap"><canvas id="view" aria-label="ภาพจำลองคลื่นเสียง"></canvas></div>
+    <p id="caption" class="caption"></p>
+  </section>
+
+  <aside id="side" class="panel">
+    <div class="graph-box">
+      <div class="ghead">
+        <div>
+          <h3 id="gTitle">กราฟ</h3>
+          <p id="gSub"></p>
+        </div>
+      </div>
+      <div id="tools2" class="seg hidden">
+        <button type="button" id="btnBeta" class="on">ระดับ β</button>
+        <button type="button" id="btnI">ความเข้ม I</button>
+      </div>
+      <div id="tools3" class="seg hidden">
+        <button type="button" id="btnEnv" class="on">เอนเวโลป</button>
+        <button type="button" id="btnZoom">ขยายคลื่นพาหะ</button>
+      </div>
+      <div class="graph-wrap"><canvas id="graph" aria-label="กราฟผลการทดลอง"></canvas></div>
+    </div>
+    <div id="sideScroll">
+      <div id="cards"></div>
+      <div class="mis">
+        <h3>จุดที่มักเข้าใจคลาดเคลื่อน</h3>
+        <p id="misText"></p>
+        <h3>ลองทดลอง</h3>
+        <p id="tryText"></p>
+        <p id="misLive" class="live"></p>
+      </div>
+      <p class="note">สูตรตามแบบเรียนฟิสิกส์เพิ่มเติม ม.5 ของ สสวท. ตัวกลางเป็นอากาศนิ่ง ไม่คิดการสะท้อนและการปรับปลายท่อ ภาพเคลื่อนไหวถูกทำให้ช้าลงเฉพาะตอนที่ต้องมองเห็นหน้าคลื่น ตัวเลขบนการ์ดเป็นค่าจริง</p>
+    </div>
+  </aside>
+</div>
+<script>
+'use strict';
+
+function clamp(x, a, b) { return Math.max(a, Math.min(b, x)); }
+
+function fmt(n, d) {
+  if (!Number.isFinite(n)) return '—';
+  const neg = n < 0;
+  const digits = d == null ? 2 : d;
+  const parts = Math.abs(n).toFixed(digits).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return (neg ? '−' : '') + parts.join('.');
+}
+
+function sup(n) {
+  const map = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+  return String(n).replace(/./g, (ch) => map[ch] || ch);
+}
+
+function sci(n) {
+  if (!Number.isFinite(n)) return '—';
+  const sign = n < 0 ? '−' : '';
+  const abs = Math.abs(n);
+  if (abs === 0) return '0';
+  if (abs >= 0.01 && abs < 10000) return fmt(n, abs < 1 ? 4 : 3);
+  const exp = Math.floor(Math.log10(abs));
+  const mant = abs / Math.pow(10, exp);
+  return sign + mant.toFixed(2) + '×10' + sup(exp);
+}
+
+function fmtLen(m) {
+  if (!Number.isFinite(m)) return '—';
+  if (Math.abs(m) < 1) return fmt(m, 3) + ' m (' + fmt(m * 100, 1) + ' cm)';
+  return fmt(m, 2) + ' m';
+}
+
+function fmtP(p) {
+  if (!Number.isFinite(p)) return '—';
+  if (p >= 10) return fmt(p, 1) + ' W';
+  if (p >= 1) return fmt(p, 2) + ' W';
+  if (p >= 0.01) return fmt(p, 3) + ' W';
+  return sci(p) + ' W';
+}
+
+function soundSpeed(Tc) {
+  return Math.round((331 + 0.6 * Tc) * 10) / 10;
+}
+
+function intensity(P, r) {
+  return P / (4 * Math.PI * r * r);
+}
+
+function level(I) {
+  return 10 * Math.log10(I / 1e-12);
+}
+
+function beatInfo(f1, f2) {
+  return { fb: Math.abs(f1 - f2), favg: (f1 + f2) / 2 };
+}
+
+function harmonicF(v, L, n, closed) {
+  return closed ? n * v / (4 * L) : n * v / (2 * L);
+}
+
+function harmonicAllowed(n, closed) {
+  return !(closed && n % 2 === 0);
+}
+
+function resonanceAmp(drive, fn) {
+  const rel = Math.abs(drive - fn) / fn;
+  const q = rel / 0.02;
+  return 1 / (1 + q * q);
+}
+
+function modeShape(x, L, n, closed, pressure) {
+  if (!closed && !pressure) return Math.cos(n * Math.PI * x / L);
+  if (!closed && pressure) return Math.sin(n * Math.PI * x / L);
+  if (closed && !pressure) return Math.sin(n * Math.PI * x / (2 * L));
+  return Math.cos(n * Math.PI * x / (2 * L));
+}
+
+// การกระจัดคูณด้วย cos(ωt) ความดันแปรผันตาม −∂u/∂x จึงขึ้นถึงค่าสูงสุดพร้อมกัน
+// บัพสลับตำแหน่งกันในเชิงพื้นที่ ไม่ใช่เหลื่อมกันหนึ่งในสี่คาบ
+function standing(x, L, n, closed, pressure, wt) {
+  const space = modeShape(x, L, n, closed, pressure);
+  const temporal = Math.cos(wt);
+  if (!pressure) return space * temporal;
+  return (closed ? -space : space) * temporal;
+}
+
+function beatWindow(fb, favg, zoom) {
+  const carrier = Math.max(favg, 1);
+  if (zoom) return 8 / carrier;
+  if (fb < 0.05) return 4 / carrier;
+  return clamp(3 / fb, 2 / carrier, 4);
+}
+
+function fFromSlider(u, mode) {
+  if (mode !== 4) return clamp(Math.round(u), 100, 2000);
+  const a = Math.log(30);
+  const b = Math.log(12000);
+  return clamp(Math.round(Math.exp(a + (b - a) * u / 1000)), 30, 12000);
+}
+
+function sliderFromF(f, mode) {
+  if (mode !== 4) return clamp(Math.round(f), 100, 2000);
+  const a = Math.log(30);
+  const b = Math.log(12000);
+  const u = (Math.log(clamp(f, 30, 12000)) - a) / (b - a) * 1000;
+  return clamp(u, 0, 1000);
+}
+
+function extrema(L, n, closed, pressure) {
+  const nodes = [];
+  const antis = [];
+  const pushUnique = (arr, x) => {
+    if (arr.every((v) => Math.abs(v - x) > L * 0.04)) arr.push(x);
+  };
+  const s0 = modeShape(0, L, n, closed, pressure);
+  const sL = modeShape(L, L, n, closed, pressure);
+  if (Math.abs(s0) >= 0.75) pushUnique(antis, 0);
+  else if (Math.abs(s0) <= 0.15) pushUnique(nodes, 0);
+  if (Math.abs(sL) >= 0.75) pushUnique(antis, L);
+  else if (Math.abs(sL) <= 0.15) pushUnique(nodes, L);
+  const N = 360;
+  let prev = s0;
+  let curr = modeShape(L / N, L, n, closed, pressure);
+  for (let i = 1; i < N; i++) {
+    const next = modeShape(L * (i + 1) / N, L, n, closed, pressure);
+    const a = Math.abs(prev);
+    const b = Math.abs(curr);
+    const c = Math.abs(next);
+    const x = L * i / N;
+    if (b >= a && b >= c && b >= 0.75) pushUnique(antis, x);
+    if (b <= a && b <= c && b <= 0.15) pushUnique(nodes, x);
+    prev = curr;
+    curr = next;
+  }
+  return { nodes, antis };
+}
+
+// vsToward > 0 เมื่อแหล่งกำเนิดเข้าหาผู้ฟัง, voToward > 0 เมื่อผู้ฟังเข้าหาแหล่งกำเนิด
+function dopplerF(f, v, vsToward, voToward) {
+  const num = v + voToward;
+  const den = v - vsToward;
+  if (!(num > 0) || !(den > 0)) return null;
+  return f * num / den;
+}
+
+function approachComponents(sx, ox, vsx, vox) {
+  const sourceLeft = sx <= ox;
+  return {
+    sourceLeft,
+    vsToward: sourceLeft ? vsx : -vsx,
+    voToward: sourceLeft ? -vox : vox
+  };
+}
+
+function sideWavelength(v, vsx, f, toRight) {
+  const num = toRight ? v - vsx : v + vsx;
+  if (!(num > 0)) return null;
+  return num / f;
+}
+
+function machAngleDeg(M) {
+  if (!(M > 1)) return null;
+  return Math.asin(1 / M) * 180 / Math.PI;
+}
+
+function inCone(sx, sy, ox, oy, vsx, vsy, v) {
+  const speed = Math.hypot(vsx, vsy);
+  if (!(speed > v)) return false;
+  const dx = ox - sx;
+  const dy = oy - sy;
+  const along = dx * vsx + dy * vsy;
+  if (along >= -1e-6) return false;
+  const dist = Math.hypot(dx, dy);
+  if (!(dist > 1e-6)) return false;
+  const rearx = -vsx / speed;
+  const reary = -vsy / speed;
+  const dot = (dx * rearx + dy * reary) / dist;
+  const ang = Math.acos(clamp(dot, -1, 1));
+  const mu = Math.asin(Math.min(1, v / speed));
+  return ang <= mu + 1e-4;
+}
+
+function loci(frac, lambda, f, t, lengthM) {
+  let base = (f * t + frac) % 1;
+  if (base < 0) base += 1;
+  const xs = [];
+  for (let x = lambda * base; x <= lengthM + 1e-6; x += lambda) xs.push(x);
+  return xs;
+}
+
+function selfTest() {
+  const errs = [];
+  const eq = (name, got, want, tol) => {
+    const t = tol == null ? 1e-6 : tol;
+    if (!Number.isFinite(got) || Math.abs(got - want) > t) errs.push(name + ' ได้ ' + got + ' ต้องการ ' + want);
+  };
+  if (soundSpeed(25) !== 346) errs.push('v(25) = ' + soundSpeed(25));
+  if (soundSpeed(20) !== 343) errs.push('v(20) = ' + soundSpeed(20));
+  if (soundSpeed(0) !== 331) errs.push('v(0)');
+  if (soundSpeed(-20) !== 319) errs.push('v(-20) = ' + soundSpeed(-20));
+  if (soundSpeed(50) !== 361) errs.push('v(50) = ' + soundSpeed(50));
+  if (soundSpeed(10) !== 337) errs.push('v(10) = ' + soundSpeed(10));
+  eq('I', intensity(1, 1), 1 / (4 * Math.PI), 1e-12);
+  eq('drop6', level(intensity(0.02, 5)) - level(intensity(0.02, 10)), 20 * Math.log10(2), 1e-9);
+  eq('fb', beatInfo(440, 443).fb, 3, 0);
+  eq('favg', beatInfo(440, 443).favg, 441.5, 1e-9);
+  eq('open1', harmonicF(346, 0.5, 1, false), 346, 1e-9);
+  eq('open2', harmonicF(346, 0.5, 2, false), 692, 1e-9);
+  eq('closed1', harmonicF(346, 0.5, 1, true), 173, 1e-9);
+  eq('closed3', harmonicF(346, 0.5, 3, true), 519, 1e-9);
+  if (harmonicAllowed(2, true) || !harmonicAllowed(2, false) || !harmonicAllowed(3, true)) errs.push('ฮาร์มอนิกที่อนุญาต');
+  eq('amp0', resonanceAmp(100, 100), 1, 1e-12);
+  eq('amp2', resonanceAmp(102, 100), 0.5, 1e-9);
+  eq('shape', modeShape(0, 1, 1, false, false), 1, 1e-9);
+  eq('shape2', modeShape(1, 1, 1, false, false), -1, 1e-9);
+  eq('shape3', modeShape(0.5, 1, 1, false, false), 0, 1e-9);
+  eq('shape4', modeShape(0, 1, 1, true, false), 0, 1e-9);
+  eq('shape5', modeShape(1, 1, 1, true, false), 1, 1e-9);
+  eq('shape6', modeShape(0, 1, 1, false, true), 0, 1e-9);
+  eq('shape7', modeShape(1, 1, 1, false, true), 0, 1e-9);
+  eq('shape8', modeShape(0, 1, 1, true, true), 1, 1e-9);
+  eq('shape9', modeShape(1, 1, 1, true, true), 0, 1e-9);
+  const ex = extrema(1, 1, false, false);
+  if (!ex.nodes.some((x) => Math.abs(x - 0.5) < 0.05)) errs.push('บัพกลางท่อเปิด ' + ex.nodes.join(','));
+  if (!ex.antis.some((x) => x < 0.05) || !ex.antis.some((x) => Math.abs(x - 1) < 0.05)) errs.push('ปฏิบัพปลายท่อเปิด');
+  const exC = extrema(1, 1, true, false);
+  if (!exC.nodes.some((x) => x < 0.05)) errs.push('บัพปลายปิด');
+  if (!exC.antis.some((x) => Math.abs(x - 1) < 0.05)) errs.push('ปฏิบัพปลายเปิดของท่อปิด');
+  if (exC.nodes.some((x) => Math.abs(x - 0.5) < 0.08)) errs.push('ท่อปิดไม่ควรมีบัพกลางสำหรับ n = 1');
+  eq('dop', dopplerF(1000, 340, 40, 0), 1000 * 340 / 300, 1e-6);
+  eq('dopAway', dopplerF(1000, 340, -40, 0), 1000 * 340 / 380, 1e-6);
+  eq('dopObs', dopplerF(1000, 340, 0, 30), 1000 * 370 / 340, 1e-6);
+  if (dopplerF(440, 346, 400, 0) !== null) errs.push('เร็วกว่าเสียงต้องไม่ใช้สูตรปกติ');
+  if (dopplerF(440, 346, 0, -400) !== null) errs.push('ผู้ฟังหนีเร็วกว่าเสียง');
+  eq('mach', machAngleDeg(2), 30, 1e-6);
+  if (machAngleDeg(1) !== null || machAngleDeg(0.8) !== null) errs.push('มุมมัคช่วงต่ำกว่าเสียง');
+  let c = approachComponents(0, 100, 40, -15);
+  eq('vsTo', c.vsToward, 40, 0);
+  eq('voTo', c.voToward, 15, 0);
+  c = approachComponents(100, 0, 40, -15);
+  eq('vsAway', c.vsToward, -40, 0);
+  eq('voAway', c.voToward, -15, 0);
+  if (!inCone(0, 0, -5, 0, 2, 0, 1)) errs.push('ด้านหลังกรวย');
+  if (inCone(0, 0, 5, 0, 2, 0, 1)) errs.push('ด้านหน้าไม่ควรอยู่ในกรวย');
+  if (inCone(0, 0, -5, 0, 0.5, 0, 1)) errs.push('ต่ำกว่าเสียงไม่มีกรวย');
+  if (inCone(0, 0, -1, 1, 2, 0, 1)) errs.push('มุม 45 องศาอยู่นอกกรวย Mach 2');
+  if (!inCone(0, 0, -5, 1, 2, 0, 1)) errs.push('มุมแคบควรอยู่ในกรวย');
+  const xs = loci(0.5, 2, 1, 0, 5);
+  eq('loci', xs[0], 1, 1e-9);
+  eq('loci2', xs[1], 3, 1e-9);
+  eq('lociMove', loci(0.5, 2, 1, 0.25, 5)[0], 1.5, 1e-9);
+  eq('lamR', sideWavelength(340, 40, 1000, true), 0.3, 1e-12);
+  eq('lamL', sideWavelength(340, 40, 1000, false), 0.38, 1e-12);
+  if (sideWavelength(340, 340, 1000, true) !== null) errs.push('ความยาวคลื่นด้านหน้าเป็นศูนย์');
+  eq('stdU', standing(0.5, 1, 1, false, false, 0), 0, 1e-9);
+  eq('stdP', standing(0.5, 1, 1, false, true, 0), 1, 1e-9);
+  eq('stdUt', standing(0.25, 1, 1, false, false, Math.PI / 2), 0, 1e-9);
+  eq('stdPt', standing(0.25, 1, 1, false, true, Math.PI / 2), 0, 1e-9);
+  if (standing(0.25, 1, 1, false, false, 0) * standing(0.25, 1, 1, false, true, 0) <= 0) errs.push('ท่อเปิด ความดันต้องถึงค่าสูงสุดพร้อมการกระจัด');
+  const uClosed = standing(0.1, 1, 1, true, false, 0);
+  const pClosed = standing(0.1, 1, 1, true, true, 0);
+  if (!(uClosed > 0 && pClosed < 0)) errs.push('ท่อปิด ปลายปิดต้องเป็นบริเวณขยายเมื่อโมเลกุลเคลื่อนออก');
+  if (standing(0, 1, 1, true, true, 0) >= 0) errs.push('ความดันที่ฝาปิดขณะโมเลกุลเคลื่อนออกต้องต่ำกว่าสมดุล');
+  eq('beatSlow', beatWindow(0.2, 441, false), 4, 1e-9);
+  eq('beat3', beatWindow(3, 441.5, false), 1, 1e-9);
+  eq('beatZoom', beatWindow(3, 441.5, true), 8 / 441.5, 1e-9);
+  [30, 86, 100, 346, 440, 2000, 5190, 10830, 12000].forEach((hz) => {
+    eq('fsl' + hz, fFromSlider(sliderFromF(hz, 4), 4), hz, 0);
+  });
+  const ex2 = extrema(1, 2, false, false);
+  if (![0.25, 0.75].every((x) => ex2.nodes.some((v) => Math.abs(v - x) < 0.03))) errs.push('บัพท่อเปิด n=2');
+  if (![0, 0.5, 1].every((x) => ex2.antis.some((v) => Math.abs(v - x) < 0.03))) errs.push('ปฏิบัพท่อเปิด n=2');
+  [1, 5, 6, 8, 20, 50, 100].forEach((r) => {
+    const C = 220;
+    const d = r * (C / intensityViewHalf(r));
+    eq('mic' + r, rFromPointer(d, C), r, 0.02);
+  });
+  return errs;
+}
+
+const ACCENT = { 1: '#3ee0c5', 2: '#ffc14a', 3: '#d2b0ff', 4: '#8dffb0', 5: '#ff9a62' };
+const MODE_INFO = {
+  1: {
+    title: 'อัตราเร็วของเสียงและคลื่นตามยาว',
+    objective: 'เสียงเป็นคลื่นกลตามยาว อัตราเร็วในอากาศขึ้นกับอุณหภูมิ ไม่ขึ้นกับความถี่',
+    mis: 'หลายคนคิดว่าเสียงแหลมเคลื่อนที่เร็วกว่าเสียงทุ้ม ในอากาศอุณหภูมิเดียวกัน เสียงทุกความถี่มีอัตราเร็วเท่ากัน อัตราเร็วขึ้นกับตัวกลางและอุณหภูมิ เมื่อเพิ่มความถี่ v คงเดิม แต่ λ = v/f สั้นลง อีกจุดหนึ่ง โมเลกุลไม่ได้ไหลไปกับคลื่น มันสั่นกลับไปกลับมารอบตำแหน่งสมดุล ส่วนพลังงานต่างหากที่เคลื่อนที่ด้วยอัตราเร็ว v',
+    tryit: 'เลื่อนความถี่ขึ้นลง แล้วดูว่า v กับเส้นธงไม่เปลี่ยน จากนั้นเลื่อนอุณหภูมิ เปิดเปรียบเทียบสองความถี่ จะเห็นธงเส้นเดียวกันผ่านทั้งสองคลื่น เปิดลำโพงแล้วเลื่อน f จะได้ยินเสียงสูงต่ำเปลี่ยน แต่คลื่นไม่ได้วิ่งเร็วขึ้น'
+  },
+  2: {
+    title: 'ความเข้มเสียงและระดับความเข้มเสียง',
+    objective: 'พลังงานเสียงจากแหล่งกำเนิดจุดกระจายบนผิวทรงกลม ความเข้มจึงลดตาม 1/r²',
+    mis: 'ความดังไม่ใช่เสียงแหลมทุ้ม ความถี่ f ทำให้ได้ยินสูงหรือต่ำ ส่วนความเข้มเสียง I และระดับความเข้มเสียง β หน่วยเดซิเบล บอกพลังงานต่อพื้นที่ ในชีวิตประจำวันคำว่า ระดับเสียง มักหมายถึงแหลมทุ้ม แต่ในบทนี้ β คือระดับความเข้มเสียง',
+    tryit: 'เปิดลำโพงแล้วเลื่อน f เสียงจะแหลมขึ้น แต่ β ไม่ขยับ จากนั้นเลื่อน P หรือ r แล้วดู β เปลี่ยนโดยความถี่คงเดิม กดเพิ่มระยะเป็น 2 เท่า β จะลด 6.02 dB เพราะ I เหลือ 1/4 และ 10 log(1/4) = −6.02'
+  },
+  3: {
+    title: 'ปรากฏการณ์บีตส์',
+    objective: 'คลื่นเสียงสองคลื่นที่ความถี่ใกล้กันแทรกสอดกัน ทำให้ได้ยินดังและค่อยเป็นจังหวะ',
+    mis: 'บีตส์ไม่ใช่แหล่งกำเนิดที่เปลี่ยนความถี่ขึ้นลง แต่ละแหล่งยังปล่อยความถี่คงที่ เมื่อความถี่ใกล้กัน แอมพลิจูดรวมจะดังและค่อยสลับด้วย f_b = |f₁ − f₂| ส่วนโทนที่เหลือคือความถี่เฉลี่ย (f₁ + f₂)/2',
+    tryit: 'ตั้ง 440 Hz กับ 443 Hz แล้วเปิดลำโพง จะได้ยินจังหวะดัง–ค่อย 3 ครั้งต่อวินาที ลองทำให้สองความถี่เท่ากัน จังหวะจะหาย ถ้าต่างกันเกินประมาณ 15 Hz จะเริ่มไม่ได้ยินเป็นบีตส์ชัด'
+  },
+  4: {
+    title: 'คลื่นนิ่งและการสั่นก้องในท่อ',
+    objective: 'ท่อเปิดสองข้างกับท่อปิดข้างเดียวมีเงื่อนไขปลายต่างกัน จึงเกิดคนละชุดของฮาร์มอนิก',
+    mis: 'ท่อปลายปิดข้างเดียวไม่ได้มีฮาร์มอนิกครบทุก n ปลายปิดเป็นบัพของการกระจัด ปลายเปิดเป็นปฏิบัพ จึงเกิดได้เฉพาะ n = 1, 3, 5, … ด้วย fₙ = nv/(4L) ท่อเปิดสองข้างปลายทั้งสองเป็นปฏิบัพ ได้ทุก n ด้วย fₙ = nv/(2L) บัพของความดันอยู่คนละตำแหน่งกับบัพของการกระจัด',
+    tryit: 'สลับเป็นท่อปิด แล้วดูว่า n = 2, 4, 6 ไม่เกิด จากนั้นเปลี่ยนความยาวหรืออุณหภูมิ ความถี่ธรรมชาติจะเปลี่ยนตาม v ปิดล็อกแล้วเลื่อน f ออกจาก fₙ แอมพลิจูดจะลด เพราะไม่สั่นพ้อง'
+  },
+  5: {
+    title: 'ปรากฏการณ์ดอปเพลอร์และคลื่นกระแทก',
+    objective: 'ความถี่ที่ปล่อยออกมายังเท่าเดิม สิ่งที่เปลี่ยนคือระยะห่างของหน้าคลื่นเมื่อมีคนเคลื่อนที่',
+    mis: 'ตอนแหล่งกำเนิดเคลื่อนที่เข้าหา ผู้ฟังได้ยินแหลมขึ้น ทั้งที่แหล่งกำเนิดยังปล่อยความถี่ f เท่าเดิม หน้าคลื่นด้านหน้าชิดกัน ความยาวคลื่นจึงสั้นลง ได้ f′ สูงขึ้น ผู้ฟังเข้าหาแหล่งกำเนิดใช้ +v_o ในตัวเศษ แหล่งกำเนิดเข้าหาผู้ฟังใช้ −v_s ในตัวส่วน',
+    tryit: 'ให้แหล่งกำเนิดวิ่งผ่านผู้ฟัง ดู f′ สูงก่อนผ่าน แล้วตกลงหลังผ่าน จากนั้นกดเร็วกว่าเสียง เพื่อดูกรวยมัค sin θ = v/v_s = 1/M ผู้ฟังที่อยู่หน้ากรวยยังไม่ได้ยิน จนคลื่นกระแทกผ่าน'
+  }
+};
+
+const DEFAULTS = {
+  mode: 1, T: 25, f: 440, f1: 440, f2: 443, P: 0.02, r: 5, micAng: -0.7,
+  L: 0.5, pipe: 'open', nSel: 1, lockRes: true, pressure: false,
+  compare: false, fCmp: 220, vsMach: 0.6, voMach: 0, timeMul: 1,
+  beatZoom: false, graphI: false, sx: 30, ox: 210
+};
+
+function createState() {
+  const s = Object.assign({}, DEFAULTS);
+  s.t = 0;
+  s.audioT = 0;
+  s.playing = true;
+  s.soundOn = false;
+  s.waves = [];
+  s.lastEmit = 0;
+  s.hist = [];
+  s.histT = 0;
+  s.prevInside = null;
+  s.boom = 0;
+  s.dragging = false;
+  return s;
+}
+
+let sim = createState();
+const watch = { f: null, T: null, P: null, r: null, f1: null, f2: null };
+const coach = { t: 0, msg: '' };
+let view, graph, vctx, gctx;
+
+const AudioEng = {
+  ctx: null,
+  ensure() {
+    if (this.ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    this.ctx = new AC();
+    this.master = this.ctx.createGain();
+    this.master.gain.value = 0;
+    this.master.connect(this.ctx.destination);
+    this.gainA = this.ctx.createGain();
+    this.gainB = this.ctx.createGain();
+    this.oscA = this.ctx.createOscillator();
+    this.oscB = this.ctx.createOscillator();
+    this.oscA.type = 'sine';
+    this.oscB.type = 'sine';
+    this.oscA.connect(this.gainA);
+    this.oscB.connect(this.gainB);
+    this.gainA.connect(this.master);
+    this.gainB.connect(this.master);
+    this.oscA.start();
+    this.oscB.start();
+    const n = Math.floor(this.ctx.sampleRate * 0.35);
+    const buf = this.ctx.createBuffer(1, n, this.ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (this.ctx.sampleRate * 0.06));
+    this.noise = buf;
+  },
+  boom() {
+    if (!this.ctx || !sim.soundOn || !sim.playing) return;
+    const src = this.ctx.createBufferSource();
+    src.buffer = this.noise;
+    const g = this.ctx.createGain();
+    const t = this.ctx.currentTime;
+    g.gain.setValueAtTime(0.1, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+    src.connect(g);
+    g.connect(this.ctx.destination);
+    src.start();
+  }
+};
+
+function $(id) { return document.getElementById(id); }
+
+function baseRate(mode) {
+  if (mode === 1) return 1 / 500;
+  if (mode === 2) return 1 / 70;
+  if (mode === 3) return 1;
+  if (mode === 4) return 1 / 400;
+  return 1 / 8;
+}
+
+function pFromSlider(u) {
+  const a = Math.log(0.001);
+  const b = Math.log(100);
+  return Math.exp(a + (b - a) * u / 1000);
+}
+
+function sliderFromP(p) {
+  const a = Math.log(0.001);
+  const b = Math.log(100);
+  return (Math.log(clamp(p, 0.001, 100)) - a) / (b - a) * 1000;
+}
+
+function compute() {
+  const T = sim.T;
+  const v = soundSpeed(T);
+  const f = sim.f;
+  const P = sim.P;
+  const r = clamp(sim.r, 1, 100);
+  const I = intensity(P, r);
+  const beta = level(I);
+  const beats = beatInfo(sim.f1, sim.f2);
+  const closed = sim.pipe === 'closed';
+  if (closed && sim.nSel % 2 === 0) sim.nSel = 1;
+  const L = sim.L;
+  const nSel = sim.nSel;
+  const harmonics = [];
+  for (let n = 1; n <= 6; n++) {
+    harmonics.push({ n, allowed: harmonicAllowed(n, closed), f: harmonicF(v, L, n, closed) });
+  }
+  const fnSel = harmonicF(v, L, nSel, closed);
+  const drive = sim.mode === 4 && sim.lockRes ? fnSel : f;
+  const amp = sim.mode === 4 ? (sim.lockRes ? 1 : resonanceAmp(drive, fnSel)) : 1;
+  const vsx = sim.vsMach * v;
+  const vox = sim.voMach * v;
+  const radial = approachComponents(sim.sx, sim.ox, vsx, vox);
+  const fPrime = dopplerF(f, v, radial.vsToward, radial.voToward);
+  const M = Math.abs(vsx) / v;
+  const theta = M > 1 ? Math.asin(1 / M) : null;
+  return {
+    T, v, f, P, r, I, beta, L, closed, nSel, harmonics, fnSel, drive, amp,
+    lambda: v / f, lambdaC: v / sim.fCmp, fb: beats.fb, favg: beats.favg,
+    vsx, vox, vsToward: radial.vsToward, voToward: radial.voToward,
+    sourceLeft: radial.sourceLeft, fPrime, M, theta,
+    lamRight: sideWavelength(v, vsx, f, true),
+    lamLeft: sideWavelength(v, vsx, f, false),
+    inside: inCone(sim.sx, 0, sim.ox, 0, vsx, 0, v)
+  };
+}
+
+function seedWaves() {
+  const v = soundSpeed(sim.T);
+  const vsx = sim.vsMach * v;
+  const f = Math.max(1, sim.f);
+  const stride = Math.max(1, Math.round(18 / (v / f)));
+  const interval = stride / f;
+  sim.waves = [];
+  const back = 1.6;
+  for (let t = sim.t - back; t <= sim.t; t += interval) {
+    sim.waves.push({ x: sim.sx - vsx * (sim.t - t), t, v });
+  }
+  if (sim.waves.length > 80) sim.waves.splice(0, sim.waves.length - 80);
+  sim.lastEmit = sim.t;
+  sim.waveKey = soundSpeed(sim.T).toFixed(1) + '|' + sim.f.toFixed(2) + '|' + sim.vsMach.toFixed(4);
+}
+
+function syncWaveField() {
+  if (sim.mode !== 5) return;
+  const key = soundSpeed(sim.T).toFixed(1) + '|' + sim.f.toFixed(2) + '|' + sim.vsMach.toFixed(4);
+  if (key === sim.waveKey) return;
+  const hadField = sim.waveKey != null;
+  seedWaves();
+  if (hadField) {
+    const v = soundSpeed(sim.T);
+    sim.prevInside = inCone(sim.sx, 0, sim.ox, 0, sim.vsMach * v, 0, v);
+  }
+}
+
+function resetPass() {
+  sim.sx = 30;
+  sim.ox = 210;
+  sim.prevInside = null;
+  sim.hist = [];
+  sim.histT = sim.t;
+  sim.boom = 0;
+  seedWaves();
+}
+
+function silenceWatch() {
+  watch.f = watch.T = watch.P = watch.r = watch.f1 = watch.f2 = null;
+}
+
+function resetAll() {
+  const sound = sim.soundOn;
+  sim = createState();
+  sim.soundOn = sound;
+  silenceWatch();
+  coach.t = 0;
+  resetPass();
+  syncSliders();
+  setMode(sim.mode);
+}
+
+function showGroups() {
+  document.querySelectorAll('[data-show]').forEach((el) => {
+    el.classList.toggle('hidden', !el.dataset.show.split(/\s+/).includes(String(sim.mode)));
+  });
+  $('cmpExtra').classList.toggle('hidden', !(sim.mode === 1 && sim.compare));
+  $('tools2').classList.toggle('hidden', sim.mode !== 2);
+  $('tools3').classList.toggle('hidden', sim.mode !== 3);
+  const cmpInfo = $('cmpInfo');
+  if (cmpInfo) cmpInfo.classList.toggle('hidden', !sim.compare);
+  $('btnDisp').classList.toggle('on', !sim.pressure);
+  $('btnPres').classList.toggle('on', sim.pressure);
+  $('btnBeta').classList.toggle('on', !sim.graphI);
+  $('btnI').classList.toggle('on', sim.graphI);
+  $('btnEnv').classList.toggle('on', !sim.beatZoom);
+  $('btnZoom').classList.toggle('on', sim.beatZoom);
+  const dis = sim.mode === 4 && sim.lockRes;
+  if ($('fSlider').disabled !== dis) $('fSlider').disabled = dis;
+}
+
+function buildChips() {
+  const box = $('nChips');
+  box.innerHTML = '';
+  for (let n = 1; n <= 6; n++) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.dataset.n = String(n);
+    b.textContent = 'n = ' + n;
+    if (sim.pipe === 'closed' && n % 2 === 0) {
+      b.disabled = true;
+      b.title = 'ท่อปิดข้างเดียวเกิดได้เฉพาะฮาร์มอนิกคี่';
+    }
+    if (n === sim.nSel) b.classList.add('on');
+    box.appendChild(b);
+  }
+}
+
+function cardHTML(mode) {
+  if (mode === 1) {
+    return '<article class="card"><h3>อัตราเร็วของเสียงในอากาศ</h3><p class="formula">v = 331 + 0.6 T<sub>C</sub></p><p class="work">v = 331 + 0.6 × <b id="wT"></b> = <b class="big" id="wV"></b> m/s</p><p class="note">สูตรประมาณตามแบบเรียน ที่อุณหภูมิเดียวกัน v ไม่ขึ้นกับความถี่</p></article><article class="card"><h3>ความยาวคลื่น</h3><p class="formula">v = fλ ดังนั้น λ = v/f</p><p class="work">λ = <b id="wV2"></b> / <b id="wF"></b> = <b class="big" id="wLam"></b></p><p id="cmpInfo">คลื่นเปรียบเทียบ f = <b id="wFc"></b> Hz ได้ λ = <b id="wLamc"></b> แต่อัตราเร็วเป็นค่า v เดิม</p></article>';
+  }
+  if (mode === 2) {
+    return '<article class="card"><h3>ความเข้มเสียง</h3><p class="formula">I = P / (4πr²)</p><p class="work">4πr² = <b id="wArea"></b> m²</p><p class="work">I = <b id="wP"></b> / <b id="wArea2"></b> = <b class="big" id="wI"></b> W/m²</p><p id="wRatios"></p></article><article class="card"><h3>ระดับความเข้มเสียง</h3><p class="formula">β = 10 log<sub>10</sub>(I / I<sub>0</sub>) โดย I<sub>0</sub> = 10⁻¹² W/m²</p><p class="work">log<sub>10</sub>(I/I<sub>0</sub>) = <b id="wLog"></b></p><p class="work">β = 10 × <b id="wLog2"></b> = <b class="big" id="wBeta"></b> dB</p><p>β(r) = <b id="wB1"></b> dB และ β(2r) = <b id="wB2"></b> dB</p><p>ผลต่าง = <b id="wDrop"></b> dB ซึ่งตรงกับ 20 log<sub>10</sub>(2) = 6.02 dB</p><p class="note" id="wSafe"></p><p class="note">ใช้กับแหล่งกำเนิดจุดที่แผ่สมมาตรในที่โล่ง ไม่คิดการสะท้อน ความถี่ไม่ได้อยู่ในสูตรนี้</p></article>';
+  }
+  if (mode === 3) {
+    return '<article class="card"><h3>ความถี่บีตส์</h3><p class="formula">f<sub>b</sub> = |f<sub>1</sub> − f<sub>2</sub>|</p><p class="work">f<sub>b</sub> = |<b id="bF1"></b> − <b id="bF2"></b>| = <b class="big" id="bFb"></b> Hz</p><p id="bTbLine"></p></article><article class="card"><h3>ความถี่เฉลี่ยของคลื่นพาหะ</h3><p class="formula">f<sub>avg</sub> = (f<sub>1</sub> + f<sub>2</sub>) / 2</p><p class="work">f<sub>avg</sub> = <b class="big" id="bAvg"></b> Hz</p><p class="note">ทั้งสองแหล่งปล่อยความถี่คงที่ ความดังที่วูบวาบคือผลการแทรกสอด ไม่ใช่ความถี่ของแหล่งที่แกว่ง</p></article>';
+  }
+  if (mode === 4) {
+    return '<article class="card"><h3 id="pipeTitle"></h3><p class="formula" id="pipeEq"></p><p class="work" id="pipeWork"></p><p id="pRel"></p><p>ความถี่ที่ขับท่อ f = <b id="pDrive"></b> Hz</p><p id="pRes"></p></article><article class="card"><h3>ความถี่ธรรมชาติ</h3><table><thead><tr><th>n</th><th>การเกิด</th><th class="num">fₙ (Hz)</th></tr></thead><tbody id="harmBody"></tbody></table><p class="note">ไม่รวมการปรับปลายท่อ ตามสูตรพื้นฐานในแบบเรียน เส้นแนวตั้งในภาพคือการกระจัดตามยาวที่วาดให้เห็นบัพกับปฏิบัพ ไม่ได้แปลว่าเสียงในท่อเป็นคลื่นขวาง</p></article>';
+  }
+  return '<article class="card"><h3>ความถี่ปรากฏ</h3><p class="formula">f′ = f (v ± v<sub>o</sub>) / (v ∓ v<sub>s</sub>)</p><p>v = 331 + 0.6 × <b id="dT"></b> = <b id="dV"></b> m/s</p><p id="dSide"></p><p id="dVo"></p><p id="dVs"></p><p class="work" id="dWork"></p><p>f′ = <b class="big" id="dFp"></b></p><p class="note" id="dNote"></p></article><article class="card"><h3>ความยาวคลื่นด้านขวาและด้านซ้าย</h3><p id="dLr"></p><p id="dLl"></p><p class="note">v<sub>s</sub> ในสองบรรทัดนี้เป็นความเร็วทิศทางขวาเป็นบวก แหล่งกำเนิดไม่ได้เปลี่ยนความถี่ f ที่ปล่อยออกมา วงกลมบนภาพเว้นช่วงเพื่อให้เห็นการอัดแน่น ระยะจริงคือ λ สองค่านี้</p></article><article class="card"><h3>เลขมัคและคลื่นกระแทก</h3><p class="formula">M = |v<sub>s</sub>| / v และ sin θ = v / |v<sub>s</sub>| = 1/M = x/d</p><p>|v<sub>s</sub>| = <b id="dVsms"></b> m/s</p><p>M = <b class="big" id="dM"></b></p><p id="dTh"></p></article>';
+}
+
+function rebuildCards() {
+  $('cards').innerHTML = cardHTML(sim.mode);
+  if (sim.mode === 4) {
+    const body = $('harmBody');
+    for (let n = 1; n <= 6; n++) {
+      const tr = document.createElement('tr');
+      tr.id = 'hr' + n;
+      tr.innerHTML = '<td id="hn' + n + '"></td><td id="hs' + n + '"></td><td class="num" id="hf' + n + '"></td>';
+      body.appendChild(tr);
+    }
+  }
+}
+
+function setText(id, text) {
+  const el = $(id);
+  if (el && el.textContent !== text) el.textContent = text;
+}
+
+function updateReadouts(p) {
+  const info = MODE_INFO[sim.mode];
+  setText('badge', badgeText(p));
+  setText('tOut', fmt(sim.T, 0) + ' °C');
+  const fShown = sim.mode === 4 && sim.lockRes ? p.drive : sim.f;
+  setText('fOut', sim.mode === 4 && sim.lockRes ? fmt(fShown, 2) + ' Hz (fₙ)' : fmt(sim.f, 0) + ' Hz');
+  if (sim.mode === 4 && sim.lockRes) syncFreqSlider(p.drive);
+  setText('pOut', fmtP(sim.P));
+  setText('rOut', fmt(p.r, 2) + ' m');
+  setText('f1Out', fmt(sim.f1, 0) + ' Hz');
+  setText('f2Out', fmt(sim.f2, 0) + ' Hz');
+  setText('lOut', fmt(sim.L, 2) + ' m');
+  setText('cmpOut', fmt(sim.fCmp, 0) + ' Hz');
+  setText('vsOut', fmt(sim.vsMach, 2) + ' Mach · ' + fmt(p.vsx, 1) + ' m/s · ' + dirWord(sim.vsMach));
+  setText('voOut', fmt(sim.voMach, 2) + ' Mach · ' + fmt(p.vox, 1) + ' m/s · ' + dirWord(sim.voMach));
+  setText('timeOut', '× ' + fmt(sim.timeMul, 2));
+  const slow = $('slowNote');
+  if (slow) {
+    const factor = 1 / (baseRate(sim.mode) * sim.timeMul);
+    slow.textContent = factor >= 1.05
+      ? 'ช้ากว่าของจริง ' + fmt(factor, factor >= 10 ? 0 : 1) + ' เท่า ตัวเลขที่คำนวณเป็นค่าจริง'
+      : 'จังหวะของภาพเท่าของจริง ตัวเลขที่คำนวณเป็นค่าจริง';
+  }
+  $('runDot').classList.toggle('on', sim.playing);
+  setText('runText', sim.playing ? 'กำลังจำลอง' : 'หยุดชั่วคราว');
+  $('playBtn').classList.toggle('primary', !sim.playing);
+  $('pauseBtn').classList.toggle('primary', sim.playing);
+  $('soundBtn').textContent = sim.soundOn ? 'ปิดเสียงลำโพง' : 'เปิดเสียงลำโพง';
+  $('soundBtn').classList.toggle('on', sim.soundOn);
+  setText('gTitle', graphTitle());
+  setText('gSub', graphSub());
+  setText('caption', caption(p));
+  setText('misLive', liveMessage(p));
+  if (sim.mode === 1) {
+    setText('wT', fmt(sim.T, 0));
+    setText('wV', fmt(p.v, 1));
+    setText('wV2', fmt(p.v, 1));
+    setText('wF', fmt(p.f, 0));
+    setText('wLam', fmtLen(p.lambda));
+    setText('wFc', fmt(sim.fCmp, 0));
+    setText('wLamc', fmtLen(p.lambdaC));
+  } else if (sim.mode === 2) {
+    const area = 4 * Math.PI * p.r * p.r;
+    const lg = Math.log10(p.I / 1e-12);
+    const b2 = level(intensity(p.P, p.r * 2));
+    setText('wArea', fmt(area, 2));
+    setText('wArea2', fmt(area, 2));
+    setText('wP', fmtP(p.P).replace(' W', ''));
+    setText('wI', sci(p.I));
+    setText('wRatios', 'ที่ r, 2r และ 3r ได้ I : I/4 : I/9 = ' + sci(p.I) + ' : ' + sci(intensity(p.P, p.r * 2)) + ' : ' + sci(intensity(p.P, p.r * 3)) + ' W/m²');
+    setText('wLog', fmt(lg, 3));
+    setText('wLog2', fmt(lg, 3));
+    setText('wBeta', fmt(p.beta, 2));
+    setText('wB1', fmt(p.beta, 2));
+    setText('wB2', fmt(b2, 2));
+    setText('wDrop', fmt(p.beta - b2, 2));
+    const betaEl = $('wBeta');
+    if (betaEl) betaEl.style.color = p.beta >= 100 ? '#ff6b6b' : p.beta >= 85 ? '#ffc14a' : '#7dffa1';
+    setText('wSafe', p.beta >= 85 ? 'ในการทดลองจริง ระดับตั้งแต่ประมาณ 85 dB ควรป้องกันหู ตัวเลขนี้เป็นการคำนวณ ไม่ใช่ความดังของลำโพงเครื่องนี้' : 'ค่านี้ยังต่ำกว่าประมาณ 85 dB ที่งานอาชีวอนามัยใช้เตือนให้ระวัง');
+  } else if (sim.mode === 3) {
+    setText('bF1', fmt(sim.f1, 0));
+    setText('bF2', fmt(sim.f2, 0));
+    setText('bFb', fmt(p.fb, 2));
+    setText('bAvg', fmt(p.favg, 2));
+    setText('bTbLine', p.fb > 0.05 ? 'คาบของจังหวะ T_b = 1/f_b = ' + fmt(1 / p.fb, 3) + ' s' : 'ความถี่เท่ากัน จึงไม่ได้ยินบีตส์');
+  } else if (sim.mode === 4) {
+    const den = p.closed ? 4 * p.L : 2 * p.L;
+    setText('pipeTitle', p.closed ? 'ท่อปลายปิดข้างเดียว' : 'ท่อปลายเปิดสองข้าง');
+    setText('pipeEq', p.closed ? 'fₙ = n v / (4L) โดย n = 1, 3, 5, …' : 'fₙ = n v / (2L) โดย n = 1, 2, 3, …');
+    setText('pipeWork', 'f = ' + p.nSel + ' × ' + fmt(p.v, 1) + ' / ' + fmt(den, 2) + ' = ' + fmt(p.fnSel, 2) + ' Hz');
+    const pretty = p.closed ? (p.nSel === 1 ? 'λ/4' : p.nSel + 'λ/4') : (p.nSel === 1 ? 'λ/2' : p.nSel + 'λ/2');
+    const lamN = p.closed ? 4 * p.L / p.nSel : 2 * p.L / p.nSel;
+    setText('pRel', 'ความยาวท่อ L = ' + pretty + ' = ' + fmt(p.L, 2) + ' m จึงได้ λ = ' + fmtLen(lamN));
+    setText('pDrive', fmt(p.drive, 2));
+    const pct = Math.abs(p.drive - p.fnSel) / p.fnSel * 100;
+    const resLine = sim.lockRes || p.amp > 0.7 ? 'เกิดการสั่นพ้องที่ฮาร์มอนิกซึ่งเลือก แอมพลิจูดสูง' : 'ยังไม่สั่นพ้อง ความถี่ห่างจาก fₙ ที่เลือก ' + fmt(pct, 1) + '%';
+    setText('pRes', resLine + playbackNote(p.drive));
+    p.harmonics.forEach((h) => {
+      const tr = $('hr' + h.n);
+      if (!tr) return;
+      tr.className = (h.n === p.nSel ? 'sel ' : '') + (h.allowed ? '' : 'bad');
+      setText('hn' + h.n, String(h.n));
+      let status = h.allowed ? 'เกิด' : 'ไม่เกิด';
+      if (h.allowed && h.n === p.nSel && (sim.lockRes || p.amp > 0.7)) status = 'สั่นพ้อง';
+      setText('hs' + h.n, status);
+      setText('hf' + h.n, fmt(h.f, 2));
+    });
+  } else {
+    setText('dT', fmt(sim.T, 0));
+    setText('dV', fmt(p.v, 1));
+    setText('dSide', p.sourceLeft ? 'ขณะนี้แหล่งกำเนิดอยู่ทางซ้ายของผู้ฟัง' : 'ขณะนี้แหล่งกำเนิดอยู่ทางขวาของผู้ฟัง');
+    setText('dVo', signVo(p));
+    setText('dVs', signVs(p));
+    setText('dWork', workDoppler(p));
+    setText('dFp', p.fPrime == null ? '—  สูตรปกติใช้ไม่ได้' : fmt(p.fPrime, 2) + ' Hz');
+    setText('dNote', dopplerNote(p));
+    setText('dLr', wavelengthLine('ด้านขวา', '(v − v_s) / f', p.v, p.vsx, p.f, p.lamRight, true));
+    setText('dLl', wavelengthLine('ด้านซ้าย', '(v + v_s) / f', p.v, p.vsx, p.f, p.lamLeft, false));
+    setText('dVsms', fmt(Math.abs(p.vsx), 1));
+    setText('dM', fmt(p.M, 3));
+    setText('dTh', p.theta == null ? 'ยังไม่เกิดคลื่นกระแทก เพราะ |v_s| ไม่เกิน v' : 'θ = arcsin(1/M) = ' + fmt(p.theta * 180 / Math.PI, 1) + '° และ sin θ = x/d = ' + fmt(1 / p.M, 3) + ' โดย x คือระยะที่คลื่นเดินทาง d คือระยะที่แหล่งกำเนิดเดินทางในเวลาเดียวกัน');
+  }
+}
+
+function wavelengthLine(side, expr, v, vsx, f, value, toRight) {
+  if (value == null) return 'λ ' + side + ' ใช้สูตรปกติไม่ได้ เพราะแหล่งกำเนิดเร็วกว่าหรือเท่าเสียงในทิศนั้น';
+  const signed = toRight ? vsx : -vsx;
+  return 'λ ' + side + ' = ' + expr + ' = (' + fmt(v, 1) + ' − ' + paren(signed) + ') / ' + fmt(f, 0) + ' = ' + fmtLen(value);
+}
+
+function paren(n) {
+  const s = fmt(n, 1);
+  return n < 0 ? '(' + s + ')' : s;
+}
+
+function signVo(p) {
+  if (Math.abs(p.vox) < 0.05) return 'ผู้ฟังอยู่นิ่ง จึงใช้ v_o = 0';
+  const mag = fmt(Math.abs(p.voToward), 1);
+  return p.voToward > 0
+    ? 'ผู้ฟังเคลื่อนเข้าหาแหล่งกำเนิด ' + mag + ' m/s จึงใช้ +v_o ในตัวเศษ'
+    : 'ผู้ฟังเคลื่อนออกจากแหล่งกำเนิด ' + mag + ' m/s จึงใช้ −v_o ในตัวเศษ';
+}
+
+function signVs(p) {
+  if (Math.abs(p.vsx) < 0.05) return 'แหล่งกำเนิดอยู่นิ่ง จึงใช้ v_s = 0';
+  const mag = fmt(Math.abs(p.vsToward), 1);
+  return p.vsToward > 0
+    ? 'แหล่งกำเนิดเคลื่อนเข้าหาผู้ฟัง ' + mag + ' m/s จึงใช้ −v_s ในตัวส่วน'
+    : 'แหล่งกำเนิดเคลื่อนออกจากผู้ฟัง ' + mag + ' m/s จึงใช้ +v_s ในตัวส่วน';
+}
+
+function workDoppler(p) {
+  if (p.fPrime == null) return 'ไม่แทนค่าลงสูตร เพราะตัวเศษหรือตัวส่วนไม่เป็นบวก';
+  return 'f′ = ' + fmt(p.f, 0) + ' × (' + fmt(p.v, 1) + ' + ' + paren(p.voToward) + ') / (' + fmt(p.v, 1) + ' − ' + paren(p.vsToward) + ') = ' + fmt(p.fPrime, 2) + ' Hz';
+}
+
+function playbackNote(trueF) {
+  if (trueF == null || !Number.isFinite(trueF)) return '';
+  const heard = clamp(trueF, 50, 3600);
+  if (Math.abs(heard - trueF) <= 1) return '';
+  return ' ลำโพงเล่นที่ ' + fmt(heard, 0) + ' Hz เพื่อไม่ให้แสบหู ค่าบนการ์ดเป็นค่าตามสูตร';
+}
+
+function dopplerNote(p) {
+  if (p.vsToward >= p.v) return 'แหล่งกำเนิดเข้าหาด้วยอัตราเร็วถึงหรือเกินเสียง ผู้ฟังด้านหน้ายังไม่ได้ยินจนกว่าคลื่นกระแทกจะผ่าน';
+  if (p.v + p.voToward <= 0) return 'ผู้ฟังเคลื่อนออกด้วยอัตราเร็วถึงหรือเกินเสียง จึงไม่พบหน้าคลื่นที่ตามมา';
+  const limited = playbackNote(p.fPrime);
+  if (limited) return 'ค่า f′ บนการ์ดเป็นค่าตามสูตร' + limited;
+  return 'ความถี่ f ของแหล่งกำเนิดไม่เปลี่ยน มีแต่ระยะห่างหน้าคลื่นที่เปลี่ยน';
+}
+
+function dirWord(mach) {
+  if (mach > 0.005) return 'ไปทางขวา';
+  if (mach < -0.005) return 'ไปทางซ้าย';
+  return 'หยุดนิ่ง';
+}
+
+function badgeText(p) {
+  if (sim.mode === 1) return 'v = ' + fmt(p.v, 1) + ' m/s · λ = ' + fmt(p.lambda, 3) + ' m';
+  if (sim.mode === 2) return 'β = ' + fmt(p.beta, 1) + ' dB · I = ' + sci(p.I) + ' W/m²';
+  if (sim.mode === 3) return 'f_b = ' + fmt(p.fb, 2) + ' Hz · f_avg = ' + fmt(p.favg, 1) + ' Hz';
+  if (sim.mode === 4) return (p.closed ? 'ท่อปิด · ' : 'ท่อเปิด · ') + 'fₙ = ' + fmt(p.fnSel, 1) + ' Hz';
+  return 'f′ = ' + (p.fPrime == null ? '—' : fmt(p.fPrime, 1) + ' Hz') + ' · M = ' + fmt(p.M, 2);
+}
+
+function graphTitle() {
+  if (sim.mode === 1) return 'กราฟการกระจัดกับตำแหน่ง';
+  if (sim.mode === 2) return sim.graphI ? 'กราฟความเข้มเสียงกับระยะ' : 'กราฟระดับความเข้มเสียงกับระยะ';
+  if (sim.mode === 3) return sim.beatZoom ? 'คลื่นรวมแบบขยาย' : 'เอนเวโลปของบีตส์';
+  if (sim.mode === 4) return 'กราฟคลื่นนิ่งในท่อ';
+  return 'ความถี่ปรากฏขณะเคลื่อนที่';
+}
+
+function graphSub() {
+  if (sim.mode === 1) return 'แกนตั้งคือการกระจัดตามยาวที่วาดให้เห็นรูปคลื่น บริเวณอัดอยู่ตรงจุดที่ความชันของการกระจัดเป็นลบที่สุด ไม่ได้อยู่ที่ยอดกราฟ';
+  if (sim.mode === 2) return sim.graphI ? 'แกนทั้งสองเป็นลอการิทึม กราฟจึงเป็นเส้นตรงความชัน −2 ตาม I ∝ 1/r²' : 'แกนระยะเป็นลอการิทึม จึงเห็น β เป็นเส้นตรง ทุกครั้งที่ r เป็น 2 เท่า β ลด 6.02 dB';
+  if (sim.mode === 3) return sim.beatZoom ? 'ช่วงเวลาสั้นพอให้เห็นคลื่นพาหะ เส้นเหลืองคือขอบเขตแอมพลิจูด' : 'เส้นเหลืองคือขอบเขตความดัง จังหวะถี่เท่ากับ |f₁ − f₂|';
+  if (sim.mode === 4) return 'เส้นเขียวคือการกระจัด เส้นเหลืองคือความดัน บัพของการกระจัดคือปฏิบัพของความดัน ทั้งคู่ขึ้นถึงค่าสูงสุดพร้อมกัน';
+  return 'แกนเวลาเป็นเวลาของการจำลอง เส้นประคือความถี่ f ที่แหล่งกำเนิดปล่อยจริง';
+}
+
+function caption(p) {
+  const slow = 'ภาพช้ากว่าของจริง ' + fmt(1 / (baseRate(sim.mode) * sim.timeMul), 0) + ' เท่า';
+  if (sim.mode === 1) return 'สีส้มคือบริเวณอัด สีฟ้าคือบริเวณขยาย ลูกศรสั้นคือทิศที่โมเลกุลกำลังสั่น ส่วนเส้นธงเคลื่อนที่ด้วยอัตราเร็ว v ไม่ขึ้นกับความถี่ แอมพลิจูดในภาพถูกขยายให้มองเห็น ' + slow;
+  if (sim.mode === 2) return 'มองจากด้านบน หน้าคลื่นทรงกลมจึงเป็นวงกลม แต่พลังงานกระจายบนผิวทรงกลม 4πr² ลากไมโครโฟนไปรอบแหล่งกำเนิดได้ ค่า β ขึ้นกับระยะอย่างเดียว ไม่ขึ้นกับทิศและความถี่';
+  if (sim.mode === 3) return p.fb < 0.05 ? 'สองความถี่เท่ากัน ทั้งก้อนจึงดังคงที่ ไม่มีจังหวะบีตส์' : 'ทั้งบริเวณดังและค่อยพร้อมกัน ' + fmt(p.fb, 2) + ' ครั้งต่อวินาที ตามเวลาจริง เปิดลำโพงแล้วจังหวะจะตรงกับภาพ กราฟด้านขวาคือรูปคลื่น';
+  if (sim.mode === 4) return (sim.pressure ? 'ป้าย N และ A เป็นของความดัน ' : 'ป้าย N และ A เป็นของการกระจัด ') + 'ลองสลับป้ายเพื่อดูว่าสลับตำแหน่งกัน สีส้มในท่อคือความดันสูงกว่าสมดุล สีฟ้าคือต่ำกว่าสมดุล ' + slow;
+  if (p.M > 1) return 'เกิดคลื่นกระแทกรูปกรวย เพราะแหล่งกำเนิดเร็วกว่าเสียง ' + (p.inside ? 'ผู้ฟังอยู่ในกรวยแล้ว' : 'ผู้ฟังอยู่หน้ากรวย จึงยังไม่ได้ยิน') + ' ' + slow;
+  return 'หน้าคลื่นด้านที่แหล่งกำเนิดวิ่งเข้าหาจะชิดกัน หลังผ่านผู้ฟังความถี่ปรากฏจะลดทันที แหล่งกำเนิดยังปล่อย f เท่าเดิม ' + slow;
+}
+
+function liveMessage(p) {
+  if (coach.t > 0) return coach.msg;
+  if (sim.mode === 1) return sim.compare ? 'กำลังเทียบสองความถี่ อัตราเร็ว v เป็นค่าเดียวกันทั้งคู่' : 'ลองเลื่อน f แล้วดูว่าตัวเลข v ไม่ขยับ มีแต่ λ ที่เปลี่ยน';
+  if (sim.mode === 2) return 'ระยะจากจุดนี้ถ้าเพิ่มเป็น 2 เท่า ระดับความเข้มเสียงลด ' + fmt(p.beta - level(intensity(p.P, p.r * 2)), 2) + ' dB';
+  if (sim.mode === 3) return p.fb > 15 ? 'f_b สูงกว่า 15 Hz จะไม่ได้ยินเป็นจังหวะบีตส์ชัด ลองให้ต่างกัน 1 ถึง 10 Hz' : p.fb < 0.05 ? 'ไม่เกิดบีตส์' : 'ควรได้ยินจังหวะประมาณ ' + fmt(p.fb, 2) + ' ครั้งในหนึ่งวินาที';
+  if (sim.mode === 4) return sim.lockRes ? 'ความถี่ถูกล็อกที่ fₙ ของฮาร์มอนิกที่เลือก ลองปิดล็อกแล้วเลื่อน f ออกไป' : 'แอมพลิจูดสัมพัทธ์ ' + fmt(p.amp * 100, 0) + '% ของการสั่นพ้อง';
+  if (p.M > 1) {
+    const ang = fmt(p.theta * 180 / Math.PI, 1);
+    return p.inside
+      ? 'ผู้ฟังอยู่ในกรวยแล้ว ได้ยินเสียงหลังจากคลื่นกระแทกผ่าน มุมมัค ' + ang + '°'
+      : 'ผู้ฟังอยู่หน้ากรวย ยังไม่ได้ยินจนกว่าแนวคลื่นกระแทกจะผ่าน มุมมัค ' + ang + '°';
+  }
+  return p.fPrime == null ? 'สูตรดอปเพลอร์ปกติใช้ไม่ได้ในสถานการณ์นี้' : 'แหล่งกำเนิดปล่อย ' + fmt(p.f, 0) + ' Hz แต่ผู้ฟังได้ยิน ' + fmt(p.fPrime, 1) + ' Hz';
+}
+
+function trackChanges() {
+  if (watch.f !== null && watch.f !== sim.f && sim.mode === 1) {
+    coach.msg = 'เลื่อนความถี่แล้ว λ เปลี่ยน แต่ v เท่าเดิมที่ ' + fmt(soundSpeed(sim.T), 1) + ' m/s';
+    coach.t = 4;
+  }
+  if (watch.T !== null && watch.T !== sim.T && (sim.mode === 1 || sim.mode === 4 || sim.mode === 5)) {
+    coach.msg = 'เปลี่ยนอุณหภูมิแล้ว v = 331 + 0.6×' + fmt(sim.T, 0) + ' = ' + fmt(soundSpeed(sim.T), 1) + ' m/s';
+    if (sim.mode === 4) coach.msg += ' ความถี่ธรรมชาติของท่อจึงเปลี่ยนตาม';
+    coach.t = 4;
+  }
+  if (watch.f !== null && watch.f !== sim.f && sim.mode === 2) {
+    coach.msg = 'เลื่อนเฉพาะความถี่ เสียงสูงต่ำเปลี่ยน แต่ β ไม่เปลี่ยน';
+    coach.t = 4;
+  }
+  if (watch.r !== null && sim.mode === 2 && (watch.r !== sim.r || watch.P !== sim.P)) {
+    coach.msg = 'เปลี่ยนกำลังหรือระยะแล้ว β เปลี่ยน แต่ความถี่ f ยังเท่าเดิม';
+    coach.t = 4;
+  }
+  if (watch.f1 !== null && sim.mode === 3 && (watch.f1 !== sim.f1 || watch.f2 !== sim.f2)) {
+    coach.msg = 'f_b = |' + fmt(sim.f1, 0) + ' − ' + fmt(sim.f2, 0) + '| = ' + fmt(Math.abs(sim.f1 - sim.f2), 2) + ' Hz';
+    coach.t = 4;
+  }
+  watch.f = sim.f;
+  watch.T = sim.T;
+  watch.P = sim.P;
+  watch.r = sim.r;
+  watch.f1 = sim.f1;
+  watch.f2 = sim.f2;
+}
+
+function syncFreqSlider(freq) {
+  const el = $('fSlider');
+  if (!el) return;
+  if (sim.mode === 4) {
+    if (el.max !== '1000') {
+      el.min = '0';
+      el.max = '1000';
+      el.step = '0.01';
+    }
+    const next = sliderFromF(freq, 4);
+    if (!Number.isFinite(parseFloat(el.value)) || Math.abs(parseFloat(el.value) - next) > 0.02) el.value = String(next);
+  } else {
+    if (el.max !== '2000' || el.min !== '100') {
+      el.min = '100';
+      el.max = '2000';
+      el.step = '1';
+    }
+    sim.f = clamp(Math.round(sim.f), 100, 2000);
+    if (el.value !== String(sim.f)) el.value = String(sim.f);
+  }
+}
+
+function syncSliders() {
+  $('modeSel').value = String(sim.mode);
+  $('tSlider').value = sim.T;
+  $('pSlider').value = sliderFromP(sim.P);
+  $('rSlider').value = sim.r;
+  $('f1Slider').value = sim.f1;
+  $('f2Slider').value = sim.f2;
+  $('lSlider').value = sim.L;
+  $('vsSlider').value = sim.vsMach;
+  $('voSlider').value = sim.voMach;
+  $('timeSlider').value = sim.timeMul;
+  $('cmpSlider').value = sim.fCmp;
+  $('cmpToggle').checked = sim.compare;
+  syncFreqSlider(sim.mode === 4 && sim.lockRes ? harmonicF(soundSpeed(sim.T), sim.L, sim.nSel, sim.pipe === 'closed') : sim.f);
+  $('lockToggle').checked = sim.lockRes;
+  const pipe = document.querySelector('input[name="pipe"][value="' + sim.pipe + '"]');
+  if (pipe) pipe.checked = true;
+  showGroups();
+}
+
+function setMode(mode) {
+  sim.dragging = false;
+  if (sim.mode === 4 && mode !== 4) sim.f = clamp(Math.round(sim.f), 100, 2000);
+  sim.mode = mode;
+  if (sim.pipe === 'closed' && sim.nSel % 2 === 0) sim.nSel = 1;
+  if (mode === 5) {
+    sim.prevInside = null;
+    sim.hist = [];
+    sim.histT = sim.t;
+    seedWaves();
+  }
+  $('modeSel').value = String(mode);
+  document.documentElement.style.setProperty('--accent', ACCENT[mode]);
+  const info = MODE_INFO[mode];
+  $('modeTitle').textContent = info.title;
+  $('objective').textContent = info.objective;
+  $('misText').textContent = info.mis;
+  $('tryText').textContent = info.tryit;
+  rebuildCards();
+  buildChips();
+  showGroups();
+  syncFreqSlider(mode === 4 && sim.lockRes ? harmonicF(soundSpeed(sim.T), sim.L, sim.nSel, sim.pipe === 'closed') : sim.f);
+  updateReadouts(compute());
+}
+
+function stepDoppler(dtSim) {
+  const v = soundSpeed(sim.T);
+  const vsx = sim.vsMach * v;
+  const vox = sim.voMach * v;
+  sim.sx += vsx * dtSim;
+  sim.ox += vox * dtSim;
+  const f = Math.max(1, sim.f);
+  const stride = Math.max(1, Math.round(18 / (v / f)));
+  const interval = stride / f;
+  let guard = 0;
+  while (sim.t - sim.lastEmit >= interval && guard < 40) {
+    sim.lastEmit += interval;
+    const age = sim.t - sim.lastEmit;
+    sim.waves.push({ x: sim.sx - vsx * age, t: sim.lastEmit, v });
+    guard++;
+  }
+  if (sim.t - sim.lastEmit > interval * 2) sim.lastEmit = sim.t;
+  sim.waves = sim.waves.filter((w) => sim.t - w.t < 8);
+  if (sim.waves.length > 80) sim.waves.splice(0, sim.waves.length - 80);
+  const inside = inCone(sim.sx, 0, sim.ox, 0, vsx, 0, v);
+  if (sim.prevInside === false && inside) {
+    sim.boom = 1;
+    AudioEng.boom();
+  }
+  sim.prevInside = inside;
+  if (Math.abs(sim.sx) > 40000 || Math.abs(sim.ox) > 40000) resetPass();
+}
+
+function recordHist(p) {
+  if (sim.hist.length && sim.t - sim.histT < 0.03) return;
+  sim.hist.push({ t: sim.t, fp: p.fPrime });
+  sim.histT = sim.t;
+  if (sim.hist.length > 700) sim.hist.shift();
+}
+
+function updateAudio(p) {
+  if (!AudioEng.ctx) return;
+  const t = AudioEng.ctx.currentTime;
+  const on = sim.soundOn && sim.playing;
+  let fa = 440;
+  let fb = 440;
+  let ga = 0;
+  let gb = 0;
+  if (on) {
+    if (sim.mode === 3) {
+      fa = sim.f1;
+      fb = sim.f2;
+      ga = 0.045;
+      gb = 0.045;
+    } else if (sim.mode === 5) {
+      if (p.fPrime != null) {
+        fa = clamp(p.fPrime, 50, 3600);
+        ga = 0.05;
+        AudioEng._hold = fa;
+      } else if (AudioEng._hold) fa = AudioEng._hold;
+    } else if (sim.mode === 2) {
+      fa = p.f;
+      ga = 0.045;
+    } else if (sim.mode === 4) {
+      fa = clamp(p.drive, 50, 3600);
+      ga = 0.03 + 0.05 * p.amp;
+    } else {
+      fa = p.f;
+      ga = 0.05;
+    }
+  }
+  if (AudioEng._on !== on) {
+    AudioEng.master.gain.cancelScheduledValues(t);
+    AudioEng.master.gain.setTargetAtTime(on ? 1 : 0, t, 0.03);
+    AudioEng._on = on;
+  }
+  AudioEng.oscA.frequency.value = clamp(fa, 40, 5000);
+  AudioEng.oscB.frequency.value = clamp(fb, 40, 5000);
+  AudioEng.gainA.gain.value = ga;
+  AudioEng.gainB.gain.value = gb;
+}
+
+function prepare(canvas, ctx) {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const bw = Math.max(2, Math.round(rect.width * dpr));
+  const bh = Math.max(2, Math.round(rect.height * dpr));
+  if (canvas.width !== bw || canvas.height !== bh) {
+    canvas.width = bw;
+    canvas.height = bh;
+  }
+  const w = canvas.clientWidth || rect.width;
+  const h = canvas.clientHeight || rect.height;
+  if (w < 8 || h < 8) return null;
+  ctx.setTransform(canvas.width / w, 0, 0, canvas.height / h, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  ctx.globalAlpha = 1;
+  ctx.setLineDash([]);
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 1.5;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = '16px "Leelawadee UI", Tahoma, "Segoe UI", sans-serif';
+  ctx.shadowBlur = 0;
+  return { w, h };
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  const rr = Math.max(0, Math.min(r, w / 2, h / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
+function arrow(ctx, x1, y1, x2, y2) {
+  const ang = Math.atan2(y2 - y1, x2 - x1);
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x2, y2);
+  ctx.lineTo(x2 - 9 * Math.cos(ang - 0.45), y2 - 9 * Math.sin(ang - 0.45));
+  ctx.lineTo(x2 - 9 * Math.cos(ang + 0.45), y2 - 9 * Math.sin(ang + 0.45));
+  ctx.closePath();
+  ctx.fill();
+}
+
+function backdrop(ctx, w, h, inner) {
+  const R = Math.max(80, Math.max(w, h) * 0.72);
+  const g = ctx.createRadialGradient(w * 0.5, h * 0.42, 20, w * 0.5, h * 0.5, R);
+  g.addColorStop(0, inner);
+  g.addColorStop(1, '#0c1218');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+}
+
+function topBar(ctx, w, text) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, w, 40);
+  ctx.clip();
+  ctx.fillStyle = 'rgba(8, 12, 18, 0.72)';
+  ctx.fillRect(0, 0, w, 40);
+  ctx.fillStyle = '#e8eef5';
+  let size = 16;
+  const maxW = Math.max(40, w - 28);
+  ctx.font = '600 ' + size + 'px "Leelawadee UI", Tahoma, "Segoe UI", sans-serif';
+  while (size > 11 && ctx.measureText(text).width > maxW) {
+    size -= 1;
+    ctx.font = '600 ' + size + 'px "Leelawadee UI", Tahoma, "Segoe UI", sans-serif';
+  }
+  ctx.fillText(text, 14, 26);
+  ctx.restore();
+}
+
+function heat(comp) {
+  const x = clamp((comp + 1) / 2, 0, 1);
+  const r = Math.round(70 + x * 185);
+  const g = Math.round(150 - Math.abs(x - 0.45) * 90);
+  const b = Math.round(230 - x * 190);
+  return 'rgb(' + r + ',' + g + ',' + b + ')';
+}
+
+function drawSpeed(ctx, w, h, p) {
+  backdrop(ctx, w, h, '#14383a');
+  const lengthM = 5;
+  const x0 = 28;
+  const x1 = w - 28;
+  const px = (x1 - x0) / lengthM;
+  const top = 58;
+  const bottom = h - 28;
+  const gap = sim.compare ? 18 : 0;
+  const ch = (bottom - top - gap) / (sim.compare ? 2 : 1);
+  drawChannel(ctx, x0, top, x1, ch, px, lengthM, p.f, p, true);
+  if (sim.compare) drawChannel(ctx, x0, top + ch + gap, x1, ch, px, lengthM, sim.fCmp, p, false);
+  const xFlag = x0 + ((p.v * sim.t) % lengthM) * px;
+  ctx.save();
+  ctx.strokeStyle = '#ffc14a';
+  ctx.setLineDash([5, 4]);
+  ctx.beginPath();
+  ctx.moveTo(xFlag, top - 8);
+  ctx.lineTo(xFlag, sim.compare ? top + ch * 2 + gap : top + ch);
+  ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = '#ffc14a';
+  ctx.font = '14px "Leelawadee UI", Tahoma, sans-serif';
+  const flagLabel = 'ธงนี้เคลื่อนที่ด้วย v';
+  const flagX = clamp(xFlag + 6, x0, Math.max(x0, w - ctx.measureText(flagLabel).width - 12));
+  ctx.fillText(flagLabel, flagX, top - 4);
+  ctx.fillStyle = '#93a6b8';
+  ctx.fillText('0', x0, h - 8);
+  ctx.fillText('5 m', x1 - 28, h - 8);
+  topBar(ctx, w, 'v = ' + fmt(p.v, 1) + ' m/s ไม่ขึ้นกับ f · λ = ' + fmt(p.lambda, 3) + ' m');
+}
+
+function drawChannel(ctx, x0, y, x1, ch, px, lengthM, freq, p, primary) {
+  const lambda = p.v / freq;
+  const yMid = y + ch / 2;
+  roundRect(ctx, x0, y + 8, x1 - x0, ch - 16, 14);
+  ctx.fillStyle = 'rgba(255,255,255,0.03)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.16)';
+  ctx.stroke();
+  for (let x = x0; x < x1; x += 4) {
+    const xm = (x - x0) / px;
+    const phase = 2 * Math.PI * (xm / lambda - freq * sim.t);
+    ctx.globalAlpha = primary ? 0.28 : 0.2;
+    ctx.fillStyle = heat(-Math.cos(phase));
+    ctx.fillRect(x, y + 10, 4, ch - 20);
+  }
+  ctx.globalAlpha = 1;
+  const N = 68;
+  const spacing = lengthM / (N - 1);
+  const A = Math.min(spacing * 0.42, lambda / (2 * Math.PI) * 0.85);
+  for (let i = 0; i < N; i++) {
+    const xEq = i * spacing;
+    const phase = 2 * Math.PI * (xEq / lambda - freq * sim.t);
+    const u = A * Math.sin(phase);
+    const shown = xEq + u;
+    const phaseHere = 2 * Math.PI * (shown / lambda - freq * sim.t);
+    const comp = -Math.cos(phaseHere);
+    const pxPos = x0 + shown * px;
+    ctx.beginPath();
+    ctx.arc(pxPos, yMid, 5, 0, Math.PI * 2);
+    ctx.fillStyle = heat(comp);
+    ctx.fill();
+    if (primary && i % 7 === 0 && Math.abs(Math.cos(phase)) > 0.45) {
+      const dir = -Math.cos(phase);
+      ctx.strokeStyle = '#f4f7fb';
+      ctx.fillStyle = '#f4f7fb';
+      ctx.lineWidth = 1.4;
+      arrow(ctx, pxPos, yMid - 16, pxPos + dir * 14, yMid - 16);
+    }
+  }
+  ctx.lineWidth = 1.5;
+  const comps = loci(0.5, lambda, freq, sim.t, lengthM);
+  ctx.font = '14px "Leelawadee UI", Tahoma, sans-serif';
+  const lamLabel = 'λ = ' + fmt(lambda, 3) + ' m';
+  const tw = ctx.measureText(lamLabel).width;
+  let labeled = false;
+  if (comps.length >= 2) {
+    const a = x0 + comps[0] * px;
+    const b = x0 + comps[1] * px;
+    ctx.strokeStyle = '#ffc14a';
+    ctx.fillStyle = '#ffc14a';
+    ctx.beginPath();
+    ctx.moveTo(a, y + ch - 18);
+    ctx.lineTo(b, y + ch - 18);
+    ctx.moveTo(a, y + ch - 24);
+    ctx.lineTo(a, y + ch - 12);
+    ctx.moveTo(b, y + ch - 24);
+    ctx.lineTo(b, y + ch - 12);
+    ctx.stroke();
+    if (b - a > tw + 8) {
+      ctx.textAlign = 'center';
+      ctx.fillText(lamLabel, (a + b) / 2, y + ch - 28);
+      ctx.textAlign = 'left';
+      labeled = true;
+    }
+  }
+  if (!labeled) {
+    ctx.fillStyle = '#ffc14a';
+    ctx.fillText(lamLabel, Math.max(x0 + 8, x1 - tw - 8), y + ch - 18);
+  }
+  ctx.font = '16px "Leelawadee UI", Tahoma, "Segoe UI", sans-serif';
+  ctx.fillStyle = '#d5deea';
+  ctx.fillText((primary ? 'f = ' : 'เปรียบเทียบ ') + fmt(freq, 0) + ' Hz', x0 + 10, y + 28);
+}
+
+function intensityViewHalf(r) {
+  return Math.max(16, r + 10);
+}
+
+function rFromPointer(d, C) {
+  if (!(C > 0)) return 1;
+  const rFixed = d * 16 / C;
+  if (rFixed <= 6) return clamp(rFixed, 1, 100);
+  if (d >= C * 0.98) return 100;
+  return clamp(10 * d / (C - d), 1, 100);
+}
+
+function layoutIntensity(w, h, p) {
+  const viewHalf = intensityViewHalf(p.r);
+  const C = Math.min(w, h) * 0.46;
+  return { cx: w / 2, cy: h / 2 + 10, px: C / viewHalf, viewHalf, C };
+}
+
+function drawIntensity(ctx, w, h, p) {
+  backdrop(ctx, w, h, '#3a3018');
+  const geo = layoutIntensity(w, h, p);
+  const g = ctx.createRadialGradient(geo.cx, geo.cy, geo.px * 0.4, geo.cx, geo.cy, geo.viewHalf * geo.px);
+  g.addColorStop(0, 'rgba(255, 193, 74, 0.38)');
+  g.addColorStop(0.25, 'rgba(255, 193, 74, 0.08)');
+  g.addColorStop(1, 'rgba(255, 193, 74, 0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(geo.cx, geo.cy, geo.viewHalf * geo.px, 0, Math.PI * 2);
+  ctx.fill();
+  const lambda = p.v / p.f;
+  const step = lambda * Math.max(1, Math.round((geo.viewHalf / 14) / lambda));
+  let guard = 0;
+  for (let R = (p.v * sim.t) % step; R < geo.viewHalf && guard < 30; R += step, guard++) {
+    ctx.beginPath();
+    ctx.arc(geo.cx, geo.cy, Math.max(1, R * geo.px), 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 220, 150, 0.28)';
+    ctx.stroke();
+  }
+  [1, 2, 3].forEach((k) => {
+    if (p.r * k > geo.viewHalf * 1.08) return;
+    const R = p.r * k * geo.px;
+    ctx.beginPath();
+    ctx.arc(geo.cx, geo.cy, R, 0, Math.PI * 2);
+    ctx.lineWidth = k === 1 ? 2.4 : 1.3;
+    ctx.strokeStyle = k === 1 ? '#ffc14a' : 'rgba(255,193,74,0.55)';
+    ctx.setLineDash(k === 1 ? [] : [6, 5]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    const label = k === 1 ? 'I' : k === 2 ? 'I/4' : 'I/9';
+    let ly = geo.cy - R + 18;
+    if (ly < 50) ly = Math.min(geo.cy - 12, geo.cy - R * 0.55);
+    if (ly > 46) {
+      ctx.fillStyle = '#ffc14a';
+      ctx.textAlign = 'left';
+      ctx.fillText(label, geo.cx + 12, ly);
+    }
+  });
+  ctx.textAlign = 'left';
+  ctx.lineWidth = 1.5;
+  const mx = geo.cx + Math.cos(sim.micAng) * p.r * geo.px;
+  const my = geo.cy + Math.sin(sim.micAng) * p.r * geo.px;
+  ctx.setLineDash([5, 4]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+  ctx.beginPath();
+  ctx.moveTo(geo.cx, geo.cy);
+  ctx.lineTo(mx, my);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#f4f7fb';
+  ctx.fillText('r = ' + fmt(p.r, 2) + ' m', (geo.cx + mx) / 2 + 8, (geo.cy + my) / 2);
+  drawSourceIcon(ctx, geo.cx, geo.cy, '#ffc14a');
+  ctx.fillStyle = '#f4f7fb';
+  ctx.textAlign = 'center';
+  ctx.fillText('P = ' + fmtP(p.P), geo.cx, geo.cy + 42);
+  ctx.textAlign = 'left';
+  drawMic(ctx, mx, my, p.beta);
+  topBar(ctx, w, 'β = ' + fmt(p.beta, 1) + ' dB · I = ' + sci(p.I) + ' W/m² · f ไม่ทำให้ β เปลี่ยน');
+}
+
+function drawSourceIcon(ctx, x, y, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(x - 16, y - 14, 16, 28);
+  ctx.beginPath();
+  ctx.moveTo(x, y - 8);
+  ctx.lineTo(x + 16, y - 18);
+  ctx.lineTo(x + 16, y + 18);
+  ctx.lineTo(x, y + 8);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawMic(ctx, x, y, beta) {
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = '#ffc14a';
+  ctx.fillStyle = '#121922';
+  ctx.beginPath();
+  ctx.arc(x, y, 16, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(x, y, 7, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x, y + 16);
+  ctx.lineTo(x, y + 34);
+  ctx.moveTo(x - 10, y + 34);
+  ctx.lineTo(x + 10, y + 34);
+  ctx.stroke();
+  const text = fmt(beta, 1) + ' dB';
+  ctx.font = '700 14px "Leelawadee UI", Tahoma, sans-serif';
+  const tw = ctx.measureText(text).width;
+  roundRect(ctx, x + 20, y - 16, tw + 14, 24, 8);
+  ctx.fillStyle = 'rgba(8,12,18,0.92)';
+  ctx.fill();
+  ctx.lineWidth = 1.4;
+  ctx.strokeStyle = beta >= 100 ? '#ff6b6b' : beta >= 85 ? '#ffc14a' : '#7dffa1';
+  ctx.stroke();
+  ctx.fillStyle = ctx.strokeStyle;
+  ctx.fillText(text, x + 27, y + 1);
+  ctx.font = '16px "Leelawadee UI", Tahoma, sans-serif';
+}
+
+function drawBeats(ctx, w, h, p) {
+  backdrop(ctx, w, h, '#2a2040');
+  const env = p.fb < 0.05 ? 1 : Math.abs(Math.cos(Math.PI * p.fb * sim.audioT));
+  drawSourceIcon(ctx, 120, h * 0.36, '#d2b0ff');
+  drawSourceIcon(ctx, 120, h * 0.7, '#8eb6ff');
+  ctx.fillStyle = '#f4f7fb';
+  ctx.fillText('f₁ = ' + fmt(sim.f1, 0) + ' Hz', 150, h * 0.36);
+  ctx.fillText('f₂ = ' + fmt(sim.f2, 0) + ' Hz', 150, h * 0.7);
+  const cx = w * 0.62;
+  const cy = h * 0.56;
+  const glow = ctx.createRadialGradient(cx, cy, 10, cx, cy, 70 + env * 120);
+  glow.addColorStop(0, 'rgba(210, 176, 255, ' + (0.15 + env * 0.45) + ')');
+  glow.addColorStop(1, 'rgba(210, 176, 255, 0)');
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 70 + env * 120, 0, Math.PI * 2);
+  ctx.fill();
+  const amp = 8 + env * 36;
+  for (let i = 0; i < 18; i++) {
+    const x = cx - 180 + i * 22;
+    ctx.strokeStyle = heat(env * 2 - 1);
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(x - amp, cy);
+    ctx.lineTo(x + amp, cy);
+    ctx.stroke();
+    ctx.fillStyle = '#f4f7fb';
+    ctx.beginPath();
+    ctx.arc(x, cy, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.lineWidth = 1.5;
+  ctx.fillStyle = '#f4f7fb';
+  ctx.font = '700 28px "Leelawadee UI", Tahoma, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(p.fb < 0.05 ? 'ดังคงที่' : env > 0.62 ? 'ดัง' : env < 0.22 ? 'ค่อย' : 'กำลังเปลี่ยน', cx, cy - 70);
+  ctx.font = '16px "Leelawadee UI", Tahoma, sans-serif';
+  ctx.textAlign = 'left';
+  topBar(ctx, w, 'f_b = ' + fmt(p.fb, 2) + ' Hz · f_avg = ' + fmt(p.favg, 1) + ' Hz · แต่ละแหล่งไม่เปลี่ยนความถี่');
+}
+
+function drawPipe(ctx, w, h, p) {
+  backdrop(ctx, w, h, '#143024');
+  const pipeH = clamp(h * 0.22, 48, 110);
+  const margin = Math.min(78, Math.max(36, w * 0.08));
+  const x0 = margin;
+  const x1 = Math.max(x0 + 80, w - margin);
+  const lo = pipeH / 2 + 88;
+  const hi = h - pipeH / 2 - 78;
+  const yMid = hi > lo ? clamp(h * 0.46, lo, hi) : h * 0.46;
+  const n = p.nSel;
+  const X = (xm) => x0 + (xm / p.L) * (x1 - x0);
+  const wt = 2 * Math.PI * ((p.drive * sim.t) % 1);
+  const segs = 56;
+  for (let i = 0; i < segs; i++) {
+    const a = p.L * i / segs;
+    const b = p.L * (i + 1) / segs;
+    const pr = standing((a + b) / 2, p.L, n, p.closed, true, wt) * p.amp;
+    const alpha = 0.08 + 0.42 * Math.abs(pr);
+    ctx.fillStyle = pr >= 0 ? 'rgba(255,150,70,' + alpha + ')' : 'rgba(90,170,255,' + alpha + ')';
+    ctx.fillRect(X(a), yMid - pipeH / 2, X(b) - X(a) + 1, pipeH);
+  }
+  ctx.strokeStyle = 'rgba(232,238,245,0.9)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(x0, yMid - pipeH / 2);
+  ctx.lineTo(x1, yMid - pipeH / 2);
+  ctx.moveTo(x0, yMid + pipeH / 2);
+  ctx.lineTo(x1, yMid + pipeH / 2);
+  ctx.stroke();
+  if (p.closed) hatch(ctx, x0, yMid - pipeH / 2, pipeH);
+  openMark(ctx, p.closed ? x1 : x0, yMid, pipeH, p.closed ? 1 : -1);
+  if (!p.closed) openMark(ctx, x1, yMid, pipeH, 1);
+  const ampPx = 58 * p.amp;
+  if (p.amp < 0.85) strokeMode(ctx, X, yMid, p, false, 58, 0.2, true, wt);
+  strokeMode(ctx, X, yMid, p, false, ampPx, 1, false, wt);
+  strokeMode(ctx, X, yMid, p, true, ampPx, 1, false, wt);
+  const marks = extrema(p.L, n, p.closed, sim.pressure);
+  drawExtremeLabels(ctx, marks.nodes, 'N', '#8eb6ff', X, yMid - pipeH / 2 - 16);
+  drawExtremeLabels(ctx, marks.antis, 'A', '#ffc14a', X, yMid - pipeH / 2 - 38);
+  const shift = (p.L / 36) * 0.42;
+  for (let i = 0; i <= 36; i++) {
+    const xm = p.L * i / 36;
+    const s = standing(xm, p.L, n, p.closed, false, wt) * p.amp;
+    ctx.beginPath();
+    ctx.arc(X(xm + s * shift), yMid, 3.2, 0, Math.PI * 2);
+    ctx.fillStyle = '#f4f7fb';
+    ctx.fill();
+  }
+  ctx.strokeStyle = '#ffc14a';
+  ctx.fillStyle = '#ffc14a';
+  ctx.lineWidth = 1.5;
+  const yDim = yMid + pipeH / 2 + 28;
+  ctx.beginPath();
+  ctx.moveTo(x0, yDim);
+  ctx.lineTo(x1, yDim);
+  ctx.moveTo(x0, yDim - 6);
+  ctx.lineTo(x0, yDim + 6);
+  ctx.moveTo(x1, yDim - 6);
+  ctx.lineTo(x1, yDim + 6);
+  ctx.stroke();
+  ctx.textAlign = 'center';
+  ctx.fillText('L = ' + fmt(p.L, 2) + ' m', (x0 + x1) / 2, yDim + 22);
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#8dffb0';
+  ctx.fillText('การกระจัด', x0, yMid + pipeH / 2 + 58);
+  ctx.fillStyle = '#ffc14a';
+  ctx.fillText('ความดัน', x0 + 110, yMid + pipeH / 2 + 58);
+  tuningFork(ctx, p.closed ? x1 + 34 : x0 - 34, yMid, Math.sin(wt) * p.amp);
+  topBar(ctx, w, (p.closed ? 'ท่อปิดข้างเดียว · ' : 'ท่อเปิดสองข้าง · ') + 'n = ' + n + ' · fₙ = ' + fmt(p.fnSel, 1) + ' Hz · ' + (p.amp > 0.7 ? 'สั่นพ้อง' : 'ยังไม่สั่นพ้อง'));
+}
+
+function strokeMode(ctx, X, yMid, p, pressure, ampPx, alpha, dashed, wt) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.lineWidth = pressure ? (sim.pressure ? 3 : 1.6) : (sim.pressure ? 1.6 : 3);
+  ctx.strokeStyle = pressure ? '#ffc14a' : '#8dffb0';
+  ctx.setLineDash(dashed ? [5, 4] : []);
+  ctx.beginPath();
+  for (let i = 0; i <= 180; i++) {
+    const xm = p.L * i / 180;
+    const yy = yMid - standing(xm, p.L, p.nSel, p.closed, pressure, wt) * ampPx;
+    if (i === 0) ctx.moveTo(X(xm), yy);
+    else ctx.lineTo(X(xm), yy);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawExtremeLabels(ctx, xs, text, color, X, y) {
+  const sorted = xs.slice().sort((a, b) => a - b);
+  let last = -1e9;
+  sorted.forEach((xm, i) => {
+    const px = X(xm);
+    const end = i === 0 || i === sorted.length - 1;
+    if (!end && px - last < 22) return;
+    last = px;
+    ctx.font = '700 13px "Leelawadee UI", Tahoma, sans-serif';
+    const tw = ctx.measureText(text).width + 12;
+    roundRect(ctx, px - tw / 2, y - 12, tw, 18, 8);
+    ctx.fillStyle = 'rgba(8,12,18,0.88)';
+    ctx.fill();
+    ctx.lineWidth = 1.4;
+    ctx.strokeStyle = color;
+    ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.fillText(text, px, y + 2);
+    ctx.textAlign = 'left';
+  });
+  ctx.font = '16px "Leelawadee UI", Tahoma, sans-serif';
+}
+
+function hatch(ctx, x, y, h) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x - 16, y, 16, h);
+  ctx.clip();
+  ctx.strokeStyle = '#d5deea';
+  ctx.lineWidth = 1.2;
+  for (let i = -h; i < h; i += 7) {
+    ctx.beginPath();
+    ctx.moveTo(x - 16, y + i);
+    ctx.lineTo(x, y + i + 16);
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.strokeStyle = '#f4f7fb';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x, y + h);
+  ctx.stroke();
+}
+
+function openMark(ctx, x, y, h, dir) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(141,255,176,0.8)';
+  ctx.setLineDash([3, 4]);
+  ctx.lineWidth = 1.4;
+  for (let i = 0; i < 3; i++) {
+    ctx.beginPath();
+    ctx.moveTo(x + dir * (8 + i * 7), y - h / 2 + 8);
+    ctx.lineTo(x + dir * (8 + i * 7), y + h / 2 - 8);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function tuningFork(ctx, x, y, spread) {
+  const s = clamp(spread, -1, 1) * 4;
+  ctx.strokeStyle = '#ffc14a';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(x - 8 - s, y - 34);
+  ctx.lineTo(x - 8, y - 8);
+  ctx.arc(x, y - 8, 8, Math.PI, 0, true);
+  ctx.lineTo(x + 8 + s, y - 34);
+  ctx.moveTo(x, y);
+  ctx.lineTo(x, y + 18);
+  ctx.stroke();
+}
+
+function layoutDoppler(w) {
+  const sep = Math.abs(sim.sx - sim.ox);
+  const half = Math.max(110, sep * 0.75 + 45);
+  const cam = (sim.sx + sim.ox) / 2;
+  const left = cam - half;
+  const pad = 30;
+  const px = (w - pad * 2) / (2 * half);
+  return { px, half, left, X: (m) => pad + (m - left) * px };
+}
+
+function drawDoppler(ctx, w, h, p) {
+  backdrop(ctx, w, h, '#3a2418');
+  const geo = layoutDoppler(w);
+  const gy = Math.min(h - 78, Math.max(168, h * 0.64));
+  const cy = gy - 40;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 42, w, h - 42);
+  ctx.clip();
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+  ctx.beginPath();
+  ctx.moveTo(16, gy);
+  ctx.lineTo(w - 16, gy);
+  ctx.stroke();
+  const maxR = geo.half * 3.2;
+  sim.waves.forEach((wave) => {
+    const Rm = wave.v * (sim.t - wave.t);
+    if (Rm <= 0.2 || Rm > maxR) return;
+    ctx.beginPath();
+    ctx.arc(geo.X(wave.x), cy, Rm * geo.px, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(120, 210, 255, 0.35)';
+    ctx.stroke();
+  });
+  const speed = Math.abs(p.vsx);
+  if (speed > p.v) {
+    const velAng = p.vsx >= 0 ? 0 : Math.PI;
+    const mu = Math.asin(p.v / speed);
+    const rear = velAng + Math.PI;
+    const a1 = rear - mu;
+    const a2 = rear + mu;
+    const len = Math.hypot(w, h);
+    const sx = geo.X(sim.sx);
+    ctx.beginPath();
+    ctx.moveTo(sx, cy);
+    ctx.lineTo(sx + Math.cos(a1) * len, cy + Math.sin(a1) * len);
+    ctx.lineTo(sx + Math.cos(a2) * len, cy + Math.sin(a2) * len);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255, 154, 98, 0.13)';
+    ctx.fill();
+    ctx.strokeStyle = '#ff9a62';
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.moveTo(sx, cy);
+    ctx.lineTo(sx + Math.cos(a1) * len, cy + Math.sin(a1) * len);
+    ctx.moveTo(sx, cy);
+    ctx.lineTo(sx + Math.cos(a2) * len, cy + Math.sin(a2) * len);
+    ctx.stroke();
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(sx, cy);
+    ctx.lineTo(sx + Math.cos(rear) * 64, cy + Math.sin(rear) * 64);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    strokeShortArc(ctx, sx, cy, 48, rear, a1);
+    const am = rear - mu / 2;
+    ctx.fillStyle = '#ffd7b0';
+    ctx.fillText('θ = ' + fmt(mu * 180 / Math.PI, 1) + '°', sx + Math.cos(am) * 66, cy + Math.sin(am) * 66);
+  } else if (p.M >= 0.995) {
+    const wall = geo.X(sim.sx);
+    ctx.strokeStyle = '#ff9a62';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(wall, cy - 70);
+    ctx.lineTo(wall, cy + 70);
+    ctx.stroke();
+    ctx.fillStyle = '#ffd7b0';
+    ctx.textAlign = 'left';
+    ctx.fillText('หน้าคลื่นชิดกันเป็นระนาบ', wall + 12, cy - 52);
+  }
+  const sx = geo.X(sim.sx);
+  const ox = geo.X(sim.ox);
+  drawSourceIcon(ctx, sx, cy, '#ff9a62');
+  const earColor = p.fPrime == null ? '#93a6b8' : (p.fPrime > p.f ? '#ff8d8d' : '#8eb6ff');
+  drawPerson(ctx, ox, gy, earColor);
+  ctx.fillStyle = '#f4f7fb';
+  ctx.textAlign = 'center';
+  ctx.fillText('แหล่งกำเนิด', sx, gy + 28);
+  ctx.fillText('ผู้ฟัง', ox, gy + 28);
+  if (Math.abs(sim.sx - sim.ox) > 8) ctx.fillText(fmt(Math.abs(sim.sx - sim.ox), 0) + ' m', (sx + ox) / 2, gy + 48);
+  ctx.textAlign = 'left';
+  velTag(ctx, sx, cy - 58, p.vsx, 'vₛ');
+  velTag(ctx, ox, cy - 58, p.vox, 'vₒ');
+  if (p.M > 1) {
+    ctx.fillStyle = p.inside ? '#ffd7b0' : '#93a6b8';
+    ctx.textAlign = 'center';
+    ctx.fillText(p.inside ? 'อยู่ในกรวยแล้ว' : 'ยังไม่ได้ยิน', ox, cy - 78);
+    ctx.textAlign = 'left';
+  }
+  ctx.restore();
+  if (sim.boom > 0.03) {
+    ctx.fillStyle = 'rgba(255,244,220,' + (sim.boom * 0.28) + ')';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = 'rgba(255,255,255,' + Math.min(1, sim.boom) + ')';
+    ctx.font = '700 28px "Leelawadee UI", Tahoma, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('คลื่นกระแทกผ่านผู้ฟัง', w / 2, 86);
+    ctx.textAlign = 'left';
+    ctx.font = '16px "Leelawadee UI", Tahoma, sans-serif';
+  }
+  const fp = p.fPrime == null ? 'ยังไม่ได้ยินตามสูตรปกติ' : 'f′ = ' + fmt(p.fPrime, 1) + ' Hz';
+  topBar(ctx, w, fp + ' · M = ' + fmt(p.M, 2) + (p.theta == null ? ' · ยังไม่เกิดคลื่นกระแทก' : ' · θ = ' + fmt(p.theta * 180 / Math.PI, 1) + '°'));
+}
+
+function velTag(ctx, x, y, vx, name) {
+  ctx.fillStyle = '#ffc14a';
+  ctx.strokeStyle = '#ffc14a';
+  if (Math.abs(vx) < 0.8) {
+    ctx.fillStyle = '#93a6b8';
+    ctx.textAlign = 'center';
+    ctx.fillText(name + ' หยุด', x, y);
+    ctx.textAlign = 'left';
+    return;
+  }
+  const dir = Math.sign(vx);
+  const len = clamp(Math.abs(vx) * 0.12, 28, 70);
+  arrow(ctx, x - dir * len / 2, y, x + dir * len / 2, y);
+  ctx.textAlign = 'center';
+  ctx.fillText(name + ' ' + fmt(vx, 0) + ' m/s', x, y - 12);
+  ctx.textAlign = 'left';
+}
+
+function strokeShortArc(ctx, x, y, r, a0, a1) {
+  let d = a1 - a0;
+  while (d > Math.PI) d -= Math.PI * 2;
+  while (d < -Math.PI) d += Math.PI * 2;
+  ctx.beginPath();
+  for (let i = 0; i <= 14; i++) {
+    const a = a0 + d * i / 14;
+    const px = x + Math.cos(a) * r;
+    const py = y + Math.sin(a) * r;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.strokeStyle = '#ffe1c4';
+  ctx.stroke();
+}
+
+function drawPerson(ctx, x, y, color) {
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(x, y - 46, 8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x, y - 38);
+  ctx.lineTo(x, y - 16);
+  ctx.moveTo(x, y - 32);
+  ctx.lineTo(x - 10, y - 20);
+  ctx.moveTo(x, y - 32);
+  ctx.lineTo(x + 10, y - 20);
+  ctx.moveTo(x, y - 16);
+  ctx.lineTo(x - 8, y);
+  ctx.moveTo(x, y - 16);
+  ctx.lineTo(x + 8, y);
+  ctx.stroke();
+}
+
+function drawMain(p) {
+  const box = prepare(view, vctx);
+  if (!box) return;
+  if (sim.mode === 1) drawSpeed(vctx, box.w, box.h, p);
+  else if (sim.mode === 2) drawIntensity(vctx, box.w, box.h, p);
+  else if (sim.mode === 3) drawBeats(vctx, box.w, box.h, p);
+  else if (sim.mode === 4) drawPipe(vctx, box.w, box.h, p);
+  else drawDoppler(vctx, box.w, box.h, p);
+}
+
+function plotBox(w, h) {
+  const l = 52;
+  const t = 12;
+  const r = 12;
+  const b = 28;
+  return { l, t, r, b, pw: Math.max(10, w - l - r), ph: Math.max(10, h - t - b), w, h };
+}
+
+function drawGraph(p) {
+  const box = prepare(graph, gctx);
+  if (!box) return;
+  const ctx = gctx;
+  ctx.fillStyle = '#0c1218';
+  ctx.fillRect(0, 0, box.w, box.h);
+  if (sim.mode === 1) graphWave(ctx, box, p);
+  else if (sim.mode === 2) graphIntensity(ctx, box, p);
+  else if (sim.mode === 3) graphBeats(ctx, box, p);
+  else if (sim.mode === 4) graphPipe(ctx, box, p);
+  else graphDoppler(ctx, box, p);
+}
+
+function axes(ctx, box) {
+  ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+  ctx.beginPath();
+  ctx.moveTo(box.l, box.t);
+  ctx.lineTo(box.l, box.h - box.b);
+  ctx.lineTo(box.w - box.r, box.h - box.b);
+  ctx.stroke();
+}
+
+function graphWave(ctx, box, p) {
+  axes(ctx, box);
+  const lengthM = 5;
+  const yOf = (s) => box.t + box.ph / 2 - s * (box.ph * 0.38);
+  const xOf = (xm) => box.l + (xm / lengthM) * box.pw;
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.beginPath();
+  ctx.moveTo(box.l, yOf(0));
+  ctx.lineTo(box.w - box.r, yOf(0));
+  ctx.stroke();
+  strokeFn(ctx, box, (xm) => Math.sin(2 * Math.PI * (xm / p.lambda - p.f * sim.t)), lengthM, yOf, '#3ee0c5');
+  if (sim.compare) strokeFn(ctx, box, (xm) => Math.sin(2 * Math.PI * (xm / p.lambdaC - sim.fCmp * sim.t)), lengthM, yOf, '#d2b0ff');
+  loci(0.5, p.lambda, p.f, sim.t, lengthM).forEach((xm) => {
+    ctx.fillStyle = '#ff9a62';
+    ctx.beginPath();
+    ctx.arc(xOf(xm), yOf(0), 3.5, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  const xFlag = (p.v * sim.t) % lengthM;
+  ctx.strokeStyle = '#ffc14a';
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.moveTo(xOf(xFlag), box.t);
+  ctx.lineTo(xOf(xFlag), box.h - box.b);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#93a6b8';
+  ctx.fillText('x (m)', box.l + box.pw / 2 - 16, box.h - 6);
+}
+
+function strokeFn(ctx, box, fn, lengthM, yOf, color) {
+  ctx.beginPath();
+  for (let i = 0; i <= box.pw; i++) {
+    const xm = lengthM * i / box.pw;
+    const y = yOf(clamp(fn(xm), -1.2, 1.2));
+    if (i === 0) ctx.moveTo(box.l + i, y);
+    else ctx.lineTo(box.l + i, y);
+  }
+  ctx.strokeStyle = color;
+  ctx.stroke();
+}
+
+function graphIntensity(ctx, box, p) {
+  axes(ctx, box);
+  const xOf = (r) => box.l + (Math.log(r) / Math.log(100)) * box.pw;
+  let yOf;
+  if (sim.graphI) {
+    const logMax = Math.log10(intensity(p.P, 1));
+    const logMin = Math.log10(intensity(p.P, 100));
+    yOf = (I) => {
+      const t = (Math.log10(I) - logMin) / (logMax - logMin);
+      return box.h - box.b - clamp(t, 0, 1) * box.ph;
+    };
+  } else {
+    const bMax = level(intensity(p.P, 1));
+    const bMin = level(intensity(p.P, 100));
+    yOf = (I) => {
+      const b = level(I);
+      const t = (b - bMin) / (bMax - bMin);
+      return box.h - box.b - clamp(t, 0, 1) * box.ph;
+    };
+  }
+  ctx.beginPath();
+  for (let i = 0; i <= 80; i++) {
+    const r = Math.pow(100, i / 80);
+    const y = yOf(intensity(p.P, r));
+    if (i === 0) ctx.moveTo(xOf(r), y);
+    else ctx.lineTo(xOf(r), y);
+  }
+  ctx.strokeStyle = '#ffc14a';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.lineWidth = 1.5;
+  const yNow = yOf(p.I);
+  ctx.fillStyle = '#7dffa1';
+  ctx.beginPath();
+  ctx.arc(xOf(p.r), yNow, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#93a6b8';
+  ctx.textAlign = 'center';
+  [1, 10, 100].forEach((r) => ctx.fillText(String(r), clamp(xOf(r), box.l + 10, box.w - box.r - 12), box.h - 8));
+  ctx.textAlign = 'left';
+  ctx.fillText(sim.graphI ? 'log I' : 'β', box.w - box.r - 52, box.t + 16);
+}
+
+function graphBeats(ctx, box, p) {
+  axes(ctx, box);
+  const mid = box.t + box.ph / 2;
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.beginPath();
+  ctx.moveTo(box.l, mid);
+  ctx.lineTo(box.w - box.r, mid);
+  ctx.stroke();
+  const win = beatWindow(p.fb, p.favg, sim.beatZoom);
+  const scale = box.ph * 0.42 / 2;
+  const cycles = p.favg * win;
+  ctx.beginPath();
+  for (let i = 0; i <= box.pw; i++) {
+    const t = sim.audioT - win + (i / box.pw) * win;
+    const env = p.fb < 0.05 ? 2 : 2 * Math.abs(Math.cos(Math.PI * p.fb * t));
+    const y = mid - env * scale;
+    if (i === 0) ctx.moveTo(box.l + i, y);
+    else ctx.lineTo(box.l + i, y);
+  }
+  ctx.strokeStyle = '#ffc14a';
+  ctx.stroke();
+  ctx.beginPath();
+  for (let i = 0; i <= box.pw; i++) {
+    const t = sim.audioT - win + (i / box.pw) * win;
+    const env = p.fb < 0.05 ? -2 : -2 * Math.abs(Math.cos(Math.PI * p.fb * t));
+    const y = mid - env * scale;
+    if (i === 0) ctx.moveTo(box.l + i, y);
+    else ctx.lineTo(box.l + i, y);
+  }
+  ctx.stroke();
+  if (box.pw / Math.max(cycles, 0.001) >= 3.5) {
+    ctx.beginPath();
+    for (let i = 0; i <= box.pw; i++) {
+      const t = sim.audioT - win + (i / box.pw) * win;
+      const s = Math.sin(2 * Math.PI * sim.f1 * t) + Math.sin(2 * Math.PI * sim.f2 * t);
+      const y = mid - s * scale;
+      if (i === 0) ctx.moveTo(box.l + i, y);
+      else ctx.lineTo(box.l + i, y);
+    }
+    ctx.strokeStyle = '#3ee0c5';
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#93a6b8';
+  ctx.fillText(sim.beatZoom ? 'เวลาจริงช่วงสั้น' : 'เวลาจริง', box.l + 8, box.h - 8);
+}
+
+function graphPipe(ctx, box, p) {
+  axes(ctx, box);
+  const mid = box.t + box.ph / 2;
+  const wt = 2 * Math.PI * ((p.drive * sim.t) % 1);
+  const xOf = (xm) => box.l + (xm / p.L) * box.pw;
+  const draw = (pressure, color, width) => {
+    ctx.beginPath();
+    ctx.lineWidth = width;
+    ctx.strokeStyle = color;
+    for (let i = 0; i <= box.pw; i++) {
+      const xm = p.L * i / box.pw;
+      const s = standing(xm, p.L, p.nSel, p.closed, pressure, wt) * p.amp;
+      const y = mid - s * (box.ph * 0.4);
+      if (i === 0) ctx.moveTo(box.l + i, y);
+      else ctx.lineTo(box.l + i, y);
+    }
+    ctx.stroke();
+  };
+  draw(false, '#8dffb0', sim.pressure ? 1.5 : 2.4);
+  draw(true, '#ffc14a', sim.pressure ? 2.4 : 1.5);
+  ctx.lineWidth = 1.5;
+  ctx.fillStyle = '#93a6b8';
+  ctx.fillText(p.closed ? 'ปลายปิด' : 'ปลายเปิด', box.l, box.h - 8);
+  ctx.textAlign = 'right';
+  ctx.fillText('ปลายเปิด', box.w - box.r, box.h - 8);
+  ctx.textAlign = 'left';
+}
+
+function graphDoppler(ctx, box, p) {
+  axes(ctx, box);
+  const win = 3;
+  const plotCap = p.f * 4;
+  const visible = sim.hist.filter((h) => h.t >= sim.t - win);
+  let lo = p.f;
+  let hi = p.f;
+  visible.forEach((h) => {
+    if (h.fp != null && h.fp <= plotCap) {
+      lo = Math.min(lo, h.fp);
+      hi = Math.max(hi, h.fp);
+    }
+  });
+  if (!(hi > lo) || hi - lo < p.f * 0.2) {
+    lo = p.f * 0.65;
+    hi = Math.min(plotCap, p.f * 1.45);
+  }
+  const pad = (hi - lo) * 0.12;
+  lo = Math.max(0, lo - pad);
+  hi = Math.min(plotCap, hi + pad);
+  if (!(hi > lo)) hi = lo + p.f;
+  const xOf = (t) => box.l + ((t - (sim.t - win)) / win) * box.pw;
+  const yOf = (f) => box.h - box.b - ((f - lo) / (hi - lo)) * box.ph;
+  ctx.setLineDash([4, 4]);
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.beginPath();
+  ctx.moveTo(box.l, yOf(p.f));
+  ctx.lineTo(box.w - box.r, yOf(p.f));
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#93a6b8';
+  ctx.fillText('f', box.l + 4, yOf(p.f) - 4);
+  ctx.beginPath();
+  let pen = false;
+  let prevFp = null;
+  visible.forEach((h) => {
+    if (h.fp == null || h.fp > plotCap) {
+      pen = false;
+      prevFp = h.fp;
+      return;
+    }
+    const x = xOf(h.t);
+    const y = yOf(h.fp);
+    const jump = prevFp != null && Math.abs(h.fp - prevFp) > Math.max(20, p.f * 0.08);
+    if (!pen || jump) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+    pen = true;
+    prevFp = h.fp;
+  });
+  ctx.strokeStyle = '#ff9a62';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.lineWidth = 1.5;
+  if (p.fPrime != null && p.fPrime <= plotCap) {
+    ctx.fillStyle = '#ffc14a';
+    ctx.beginPath();
+    ctx.arc(xOf(sim.t), yOf(p.fPrime), 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#93a6b8';
+  ctx.fillText('เวลาจำลอง', box.l + box.pw / 2 - 28, box.h - 6);
+}
+
+function localPos(e) {
+  const rect = view.getBoundingClientRect();
+  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+}
+
+function onPointerDown(e) {
+  if (sim.mode !== 2) return;
+  const p = compute();
+  const geo = layoutIntensity(view.clientWidth, view.clientHeight, p);
+  const pos = localPos(e);
+  const mx = geo.cx + Math.cos(sim.micAng) * p.r * geo.px;
+  const my = geo.cy + Math.sin(sim.micAng) * p.r * geo.px;
+  const onBody = Math.hypot(pos.x - mx, pos.y - my) <= 30;
+  const onReadout = pos.x >= mx + 8 && pos.x <= mx + 130 && pos.y >= my - 24 && pos.y <= my + 44;
+  if (onBody || onReadout) {
+    sim.dragging = true;
+    if (view.setPointerCapture) view.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  }
+}
+
+function onPointerMove(e) {
+  if (!sim.dragging) return;
+  if (sim.mode !== 2) {
+    sim.dragging = false;
+    return;
+  }
+  const w = view.clientWidth;
+  const h = view.clientHeight;
+  const pos = localPos(e);
+  const dx = pos.x - w / 2;
+  const dy = pos.y - (h / 2 + 10);
+  const dist = Math.hypot(dx, dy);
+  if (dist > 6) sim.micAng = Math.atan2(dy, dx);
+  sim.r = Math.round(rFromPointer(dist, Math.min(w, h) * 0.46) * 100) / 100;
+  $('rSlider').value = sim.r;
+}
+
+function onPointerUp(e) {
+  sim.dragging = false;
+  if (!view || !e || !view.releasePointerCapture || !view.hasPointerCapture) return;
+  try {
+    if (view.hasPointerCapture(e.pointerId)) view.releasePointerCapture(e.pointerId);
+  } catch (err) {
+    /* ตัวชี้หลุดจากแคนวาสไปแล้ว */
+  }
+}
+
+function toggleSound() {
+  AudioEng.ensure();
+  sim.soundOn = !sim.soundOn;
+  if (sim.soundOn) AudioEng.ctx.resume();
+}
+
+function onControlsClick(e) {
+  const b = e.target.closest('button');
+  if (!b || !$('controls').contains(b) || b.disabled) return;
+  if (b.dataset.p) sim.P = parseFloat(b.dataset.p);
+  else if (b.dataset.r) sim.r = parseFloat(b.dataset.r);
+  else if (b.dataset.df != null) {
+    const df = parseFloat(b.dataset.df);
+    const up = sim.f1 + df;
+    sim.f2 = up <= 2000 ? up : Math.max(100, sim.f1 - df);
+  }
+  else if (b.dataset.vs != null) {
+    sim.vsMach = parseFloat(b.dataset.vs);
+    sim.voMach = parseFloat(b.dataset.vo);
+    resetPass();
+  } else if (b.dataset.act === 'double-r') sim.r = clamp(sim.r * 2, 1, 100);
+  else if (b.dataset.act === 'beat440') {
+    sim.f1 = 440;
+    sim.f2 = 443;
+  } else if (b.dataset.act === 'reset-pass') resetPass();
+  else if (b.dataset.n) {
+    sim.nSel = parseInt(b.dataset.n, 10);
+    buildChips();
+  } else if (b.id === 'btnDisp') sim.pressure = false;
+  else if (b.id === 'btnPres') sim.pressure = true;
+  else return;
+  syncSliders();
+}
+
+function bind() {
+  $('modeSel').addEventListener('change', () => setMode(parseInt($('modeSel').value, 10)));
+  $('tSlider').addEventListener('input', () => { sim.T = parseFloat($('tSlider').value); });
+  $('fSlider').addEventListener('input', () => {
+    if (sim.mode === 4 && sim.lockRes) return;
+    sim.f = fFromSlider(parseFloat($('fSlider').value), sim.mode);
+  });
+  $('pSlider').addEventListener('input', () => { sim.P = pFromSlider(parseFloat($('pSlider').value)); });
+  $('rSlider').addEventListener('input', () => { sim.r = parseFloat($('rSlider').value); });
+  $('f1Slider').addEventListener('input', () => { sim.f1 = parseFloat($('f1Slider').value); });
+  $('f2Slider').addEventListener('input', () => { sim.f2 = parseFloat($('f2Slider').value); });
+  $('lSlider').addEventListener('input', () => { sim.L = parseFloat($('lSlider').value); });
+  $('vsSlider').addEventListener('input', () => { sim.vsMach = parseFloat($('vsSlider').value); });
+  $('voSlider').addEventListener('input', () => { sim.voMach = parseFloat($('voSlider').value); });
+  $('timeSlider').addEventListener('input', () => { sim.timeMul = parseFloat($('timeSlider').value); });
+  $('cmpSlider').addEventListener('input', () => { sim.fCmp = parseFloat($('cmpSlider').value); });
+  $('cmpToggle').addEventListener('change', () => {
+    sim.compare = $('cmpToggle').checked;
+    showGroups();
+  });
+  $('lockToggle').addEventListener('change', () => {
+    sim.lockRes = $('lockToggle').checked;
+    if (!sim.lockRes) {
+      const p = compute();
+      sim.f = clamp(Math.round(p.fnSel), 30, 12000);
+    }
+    showGroups();
+    syncFreqSlider(sim.lockRes ? compute().fnSel : sim.f);
+  });
+  document.querySelectorAll('input[name="pipe"]').forEach((r) => {
+    r.addEventListener('change', () => {
+      if (!r.checked) return;
+      sim.pipe = r.value;
+      if (sim.pipe === 'closed' && sim.nSel % 2 === 0) sim.nSel = 1;
+      buildChips();
+    });
+  });
+  $('btnBeta').addEventListener('click', () => { sim.graphI = false; showGroups(); });
+  $('btnI').addEventListener('click', () => { sim.graphI = true; showGroups(); });
+  $('btnEnv').addEventListener('click', () => { sim.beatZoom = false; showGroups(); });
+  $('btnZoom').addEventListener('click', () => { sim.beatZoom = true; showGroups(); });
+  $('controls').addEventListener('click', onControlsClick);
+  $('playBtn').addEventListener('click', () => { sim.playing = true; if (sim.soundOn && AudioEng.ctx) AudioEng.ctx.resume(); });
+  $('pauseBtn').addEventListener('click', () => { sim.playing = false; });
+  $('resetBtn').addEventListener('click', resetAll);
+  $('soundBtn').addEventListener('click', toggleSound);
+  view.addEventListener('pointerdown', onPointerDown);
+  window.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
+  window.addEventListener('error', (ev) => {
+    const el = $('selftest');
+    el.hidden = false;
+    el.textContent = 'เกิดข้อผิดพลาดในสื่อจำลอง: ' + ev.message;
+  });
+}
+
+function advanceClocks(dt) {
+  if (!sim.playing) {
+    sim.audioMark = null;
+    return;
+  }
+  const ctx = AudioEng.ctx;
+  const follow = ctx && sim.soundOn && ctx.state === 'running';
+  if (follow) {
+    if (sim.audioMark == null) sim.audioMark = { t: sim.audioT, c: ctx.currentTime };
+    sim.audioT = sim.audioMark.t + (ctx.currentTime - sim.audioMark.c);
+  } else {
+    sim.audioMark = null;
+    sim.audioT += dt;
+  }
+}
+
+let lastNow = 0;
+function loop(now) {
+  const dt = Math.min(0.05, lastNow ? (now - lastNow) / 1000 : 0.016);
+  lastNow = now;
+  if (sim.playing) {
+    const dtSim = dt * baseRate(sim.mode) * sim.timeMul;
+    sim.t += dtSim;
+    if (sim.mode === 5) {
+      syncWaveField();
+      stepDoppler(dtSim);
+    }
+  } else if (sim.mode === 5) syncWaveField();
+  advanceClocks(dt);
+  coach.t = Math.max(0, coach.t - dt);
+  if (sim.boom > 0) sim.boom *= Math.exp(-3 * dt);
+  const p = compute();
+  if (sim.playing && sim.mode === 5) recordHist(p);
+  trackChanges();
+  updateAudio(p);
+  updateReadouts(p);
+  if (view) view.style.cursor = sim.mode === 2 ? (sim.dragging ? 'grabbing' : 'crosshair') : 'default';
+  drawMain(p);
+  drawGraph(p);
+  requestAnimationFrame(loop);
+}
+
+function main(errs) {
+  view = $('view');
+  graph = $('graph');
+  vctx = view.getContext('2d');
+  gctx = graph.getContext('2d');
+  if (errs.length) {
+    const el = $('selftest');
+    el.hidden = false;
+    el.textContent = 'ตรวจสูตรไม่ผ่าน: ' + errs.join(' | ');
+  }
+  bind();
+  resetAll();
+  requestAnimationFrame(loop);
+}
+
+const physicsErrors = selfTest();
+if (typeof document === 'undefined') {
+  if (physicsErrors.length) {
+    console.error(physicsErrors.join('\n'));
+    process.exit(1);
+  }
+  console.log('physics ok');
+} else {
+  main(physicsErrors);
+}
+</script>
+</body>
+</html>
